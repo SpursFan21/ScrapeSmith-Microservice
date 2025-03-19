@@ -1,0 +1,8 @@
+# Ignore the Go binary (the built app)
+auth-service
+
+# Ignore any temporary or unnecessary files
+*.log
+*.tmp
+*.swp
+node_modules/

@@ -1,8 +1,8 @@
-# Use official Golang image as builder
-FROM golang:1.21 AS builder
+# Use official Golang image as builder with version 1.22 or higher
+FROM golang:1.22 AS builder
 
 # Set working directory
-WORKDIR /app
+WORKDIR /auth-service
 
 # Copy go.mod and go.sum first (for caching dependencies)
 COPY go.mod go.sum ./
@@ -12,7 +12,7 @@ RUN go mod tidy
 COPY . .
 
 # Build the Go binary
-RUN go build -o auth-service
+RUN GOOS=linux GOARCH=amd64 go build -o /auth-service/auth-service
 
 # Use a minimal runtime image
 FROM alpine:latest
@@ -21,10 +21,13 @@ FROM alpine:latest
 WORKDIR /root/
 
 # Copy binary from builder stage
-COPY --from=builder /app/auth-service .
+COPY --from=builder /auth-service/auth-service /root/
+
+# Make sure the binary is executable
+RUN chmod +x /root/auth-service
 
 # Expose Fiber's default port
 EXPOSE 3000
 
 # Run the binary
-CMD ["./auth-service"]
+CMD ["/root/auth-service"]
