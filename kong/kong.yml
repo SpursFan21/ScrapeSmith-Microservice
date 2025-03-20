@@ -1,0 +1,9 @@
+_format_version: "3.0"
+services:
+  - name: auth-service
+    url: "http://auth-service:3000"
+    routes:
+      - name: auth-route
+        paths:
+          - /
+        strip_path: false

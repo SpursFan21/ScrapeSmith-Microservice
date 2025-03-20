@@ -1,76 +1,36 @@
 version: "3.8"
-
 services:
-  api-gateway:
-    build: ./api-gateway
+  auth-service:
+    image: auth-service
+    container_name: auth-service
+    environment:
+      DATABASE_URL: "postgres://avnadmin:AVNS_bVWjcgn9HBOP6qpx9Sl@scrapesmith-scrapesmith-users.g.aivencloud.com:18909/defaultdb?sslmode=require"
     ports:
-      - "8080:3000"
+      - "3000:3000"
+    networks:
+      - kong-net
+
+  kong:
+    image: kong:3.4
+    container_name: kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: "/usr/local/kong/declarative/kong.yml"
+      KONG_PROXY_ACCESS_LOG: "/dev/stdout"
+      KONG_ADMIN_ACCESS_LOG: "/dev/stdout"
+      KONG_PROXY_ERROR_LOG: "/dev/stderr"
+      KONG_ADMIN_ERROR_LOG: "/dev/stderr"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    volumes:
+      - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml:ro
     depends_on:
       - auth-service
-      - job-service
-      - ai-analysis-service
-      - data-cleaning-service
+    networks:
+      - kong-net
 
-  auth-service:
-    build: ./auth-service
-    ports:
-      - "8081:3000"
-    depends_on:
-      - db
-
-  job-service:
-    build: ./job-service
-    ports:
-      - "8082:3000"
-    depends_on:
-      - db
-
-  payment-service:
-    build: ./payment-service
-    ports:
-      - "8083:3000"
-    depends_on:
-      - db
-
-  scraping-service:
-    build: ./scraping-service
-    ports:
-      - "8084:3000"
-    depends_on:
-      - db
-
-  user-service:
-    build: ./user-service
-    ports:
-      - "8085:3000"
-    depends_on:
-      - db
-
-  ai-analysis-service:
-    build: ./ai-analysis-service
-    ports:
-      - "8090:8000"
-    depends_on:
-      - db
-
-  data-cleaning-service:
-    build: ./data-cleaning-service
-    ports:
-      - "8091:8000"
-    depends_on:
-      - db
-
-  db:
-    image: postgres:15
-    restart: always
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: scrapesmith
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
+networks:
+  kong-net:
+    driver: bridge
