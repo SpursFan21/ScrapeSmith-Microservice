@@ -1,33 +1,32 @@
-# Use official Golang image as builder with version 1.22 or higher
-FROM golang:1.22 AS builder
+# Stage 1: Builder
+FROM golang:1.22-alpine AS builder
+WORKDIR /src
 
-# Set working directory
-WORKDIR /auth-service
+# Install any required tools (e.g., git) for fetching modules
+RUN apk add --no-cache git
 
-# Copy go.mod and go.sum first (for caching dependencies)
+# Copy go.mod and go.sum, then download dependencies
 COPY go.mod go.sum ./
-RUN go mod tidy
+RUN go mod download
 
-# Copy source code
+# Copy the rest of the source code
 COPY . .
 
-# Build the Go binary
-RUN GOOS=linux GOARCH=amd64 go build -o /auth-service/auth-service
+# Build the binary for Linux (disable CGO for a static binary)
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o auth-service .
 
-# Use a minimal runtime image
+# Stage 2: Runtime
 FROM alpine:latest
+WORKDIR /app
 
-# Set working directory
-WORKDIR /root/
+# Copy the built binary from the builder stage
+COPY --from=builder /src/auth-service .
 
-# Copy binary from builder stage
-COPY --from=builder /auth-service/auth-service /root/
+# Ensure the binary has execution permissions
+RUN chmod +x ./auth-service
 
-# Make sure the binary is executable
-RUN chmod +x /root/auth-service
-
-# Expose Fiber's default port
+# Expose the port your service listens on (Fiber's default is 3000)
 EXPOSE 3000
 
-# Run the binary
-CMD ["/root/auth-service"]
+# Start the service
+CMD ["/app/auth-service"]
