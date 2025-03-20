@@ -3,8 +3,8 @@ services:
   auth-service:
     image: auth-service
     container_name: auth-service
-    environment:
-      DATABASE_URL: "postgres://avnadmin:AVNS_bVWjcgn9HBOP6qpx9Sl@scrapesmith-scrapesmith-users.g.aivencloud.com:18909/defaultdb?sslmode=require"
+    env_file:
+      - .env  # Load environment variables from .env file
     ports:
       - "3000:3000"
     networks:
