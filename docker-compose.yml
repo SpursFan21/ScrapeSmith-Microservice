@@ -1,13 +1,21 @@
 version: "3.8"
 
 services:
+  user-service:
+    image: user-service
+    container_name: user-service
+    env_file:
+      - ./user-service/.env  # Point to the .env file in the user-service directory
+    networks:
+      - kong-net
+
   auth-service:
     image: auth-service
     container_name: auth-service
     env_file:
-      - .env  # Load environment variables from .env file
+      - ./auth-service/.env  # Point to the .env file in the auth-service directory
     networks:
-      - kong-net  # No ports mapping, so it's not exposed to the host machine
+      - kong-net
 
   kong:
     image: kong:3.4
@@ -27,6 +35,7 @@ services:
       - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml:ro
     depends_on:
       - auth-service
+      - user-service
     networks:
       - kong-net
 

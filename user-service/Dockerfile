@@ -1,30 +1,32 @@
-# Use official Golang image as builder
-FROM golang:1.21 AS builder
+# Stage 1: Builder
+FROM golang:1.22-alpine AS builder
+WORKDIR /src
 
-# Set working directory
-WORKDIR /app
+# Install any required tools (e.g., git) for fetching modules
+RUN apk add --no-cache git
 
-# Copy go.mod and go.sum first (for caching dependencies)
+# Copy go.mod and go.sum, then download dependencies
 COPY go.mod go.sum ./
-RUN go mod tidy
+RUN go mod download
 
-# Copy source code
+# Copy the rest of the source code
 COPY . .
 
-# Build the Go binary
-RUN go build -o user-service
+# Build the binary for Linux (disable CGO for a static binary)
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o user-service .
 
-# Use a minimal runtime image
+# Stage 2: Runtime
 FROM alpine:latest
+WORKDIR /app
 
-# Set working directory
-WORKDIR /root/
+# Copy the built binary from the builder stage
+COPY --from=builder /src/user-service .
 
-# Copy binary from builder stage
-COPY --from=builder /app/user-service .
+# Ensure the binary has execution permissions
+RUN chmod +x ./user-service
 
-# Expose Fiber's default port
-EXPOSE 3000
+# Expose the port your service listens on
+EXPOSE 3001
 
-# Run the binary
-CMD ["./user-service"]
+# Start the service
+CMD ["/app/user-service"]
