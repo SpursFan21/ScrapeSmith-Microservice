@@ -1,14 +1,13 @@
 version: "3.8"
+
 services:
   auth-service:
     image: auth-service
     container_name: auth-service
     env_file:
       - .env  # Load environment variables from .env file
-    ports:
-      - "3000:3000"
     networks:
-      - kong-net
+      - kong-net  # No ports mapping, so it's not exposed to the host machine
 
   kong:
     image: kong:3.4
@@ -22,8 +21,8 @@ services:
       KONG_ADMIN_ERROR_LOG: "/dev/stderr"
       KONG_ADMIN_LISTEN: "0.0.0.0:8001"
     ports:
-      - "8000:8000"
-      - "8001:8001"
+      - "8000:8000"  # Kong's proxy port (accessible from host)
+      - "8001:8001"  # Kong's admin API port (accessible from host)
     volumes:
       - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml:ro
     depends_on:
