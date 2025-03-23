@@ -43,5 +43,5 @@ func Connect() {
 	DB.SetConnMaxLifetime(5 * 60 * 1000)
 
 	// Log successful connection
-	fmt.Println("✅ Connected to PostgreSQL")
+	fmt.Println("✅ user-service Connected to PostgreSQL")
 }
