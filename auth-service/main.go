@@ -31,6 +31,7 @@ func main() {
 	app.Post("/signup", handlers.Signup)
 	app.Post("/login", handlers.Login)
 	app.Post("/refresh", handlers.RefreshToken)
+	app.Post("/logout", handlers.Logout)
 
 	// Protected routes (using JWT middleware)
 	app.Use(middlewares.JWTMiddleware())

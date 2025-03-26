@@ -3,6 +3,7 @@ package handlers
 import (
 	"auth-service/models"
 	"auth-service/utils"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
@@ -45,10 +46,16 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
 	}
 
+	// Generate access token
 	accessToken, err := utils.GenerateAccessToken(userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate access token"})
+	}
+
+	// Generate refresh token
 	refreshToken, err := utils.GenerateRefreshToken(userID)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Token generation failed"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate refresh token"})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(models.TokenResponse{
@@ -64,27 +71,45 @@ func RefreshToken(c *fiber.Ctx) error {
 	}
 
 	if err := c.BodyParser(&req); err != nil {
+		log.Println("Error parsing refresh token request:", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 	}
 
+	log.Println("Received refresh token request with token:", req.RefreshToken)
+
 	claims, err := utils.ParseToken(req.RefreshToken)
 	if err != nil {
+		log.Println("Error parsing refresh token:", err)
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid refresh token"})
 	}
 
 	userID, ok := claims["sub"].(string)
 	if !ok {
+		log.Println("Invalid token claims, no 'sub' field found:", claims)
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token claims"})
 	}
+
+	log.Println("Generating new access token for user ID:", userID)
 
 	// Generate a new access token
 	newAccessToken, err := utils.GenerateAccessToken(userID)
 	if err != nil {
+		log.Println("Error generating new access token:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Token generation failed"})
 	}
+
+	log.Println("Successfully generated new access token for user ID:", userID)
 
 	return c.Status(fiber.StatusOK).JSON(models.TokenResponse{
 		AccessToken:  newAccessToken,
 		RefreshToken: req.RefreshToken,
+	})
+}
+
+// Logout invalidates the user's session (client should clear the tokens)
+func Logout(c *fiber.Ctx) error {
+	// Simply return a success response (client clears tokens)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Logged out successfully",
 	})
 }
