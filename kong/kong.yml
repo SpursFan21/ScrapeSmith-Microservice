@@ -22,7 +22,7 @@ services:
       - name: user-route
         paths:
           - /users
-        strip_path: true
+        strip_path: false
     plugins:
       - name: cors
         config:
