@@ -1,30 +1,32 @@
 # Use official Golang image as builder
-FROM golang:1.21 AS builder
+FROM golang:1.22-alpine AS builder
+WORKDIR /src
 
-# Set working directory
-WORKDIR /app
+# Install any required tools (e.g., git) for fetching modules
+RUN apk add --no-cache git
 
 # Copy go.mod and go.sum first (for caching dependencies)
 COPY go.mod go.sum ./
-RUN go mod tidy
+RUN go mod download
 
 # Copy source code
 COPY . .
 
-# Build the Go binary
-RUN go build -o payment-service
+# Build the binary for Linux (disable CGO for a static binary)
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o payment-service .
 
 # Use a minimal runtime image
 FROM alpine:latest
-
-# Set working directory
-WORKDIR /root/
+WORKDIR /app
 
 # Copy binary from builder stage
-COPY --from=builder /app/payment-service .
+COPY --from=builder /src/payment-service .
 
-# Expose Fiber's default port
-EXPOSE 3000
+# Ensure the binary has execution permissions
+RUN chmod +x ./payment-service
+
+# Expose port
+EXPOSE 3002
 
 # Run the binary
 CMD ["./payment-service"]

@@ -30,3 +30,18 @@ services:
           methods: ["GET", "PUT", "OPTIONS"]  # Add PUT for updating user data
           headers: ["Content-Type", "Authorization"]
           credentials: true
+
+  - name: payment-service
+    url: http://payment-service:3002
+    routes:
+      - name: payment-route
+        paths:
+          - /payment
+        strip_path: true
+    plugins:
+      - name: cors
+        config:
+          origins: ["http://localhost:3000"]
+          methods: ["POST", "OPTIONS"]
+          headers: ["Content-Type", "Authorization"]
+          credentials: true

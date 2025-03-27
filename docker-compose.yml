@@ -17,6 +17,14 @@ services:
     networks:
       - kong-net
 
+  payment-service:
+    image: payment-service
+    container_name: payment-service
+    env_file:
+      - ./payment-service/.env
+    networks:
+      - kong-net
+
   kong:
     image: kong:3.4
     container_name: kong
@@ -36,6 +44,7 @@ services:
     depends_on:
       - auth-service
       - user-service
+      - payment-service
     networks:
       - kong-net
 
