@@ -45,3 +45,18 @@ services:
           methods: ["POST", "OPTIONS"]
           headers: ["Content-Type", "Authorization"]
           credentials: true
+
+  - name: scraping-service
+    url: http://scraping-service:3003
+    routes:
+      - name: scraping-route
+        paths:
+          - /scrape
+        strip_path: true
+    plugins:
+      - name: cors
+        config:
+          origins: ["http://localhost:3000"]
+          methods: ["POST", "OPTIONS"]
+          headers: ["Content-Type", "Authorization"]
+          credentials: true

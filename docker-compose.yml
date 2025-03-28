@@ -25,6 +25,15 @@ services:
     networks:
       - kong-net
 
+  scraping-service:
+    image: scraping-service
+    container_name: scraping-service
+    env_file:
+      - ./scraping-service/.env
+    networks:
+      - kong-net
+
+
   kong:
     image: kong:3.4
     container_name: kong
@@ -45,6 +54,7 @@ services:
       - auth-service
       - user-service
       - payment-service
+      - scraping-service
     networks:
       - kong-net
 
