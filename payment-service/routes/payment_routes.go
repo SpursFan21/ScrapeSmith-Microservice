@@ -7,5 +7,6 @@ import (
 )
 
 func SetupPaymentRoutes(app *fiber.App) {
-	app.Post("/create-checkout-session", handlers.CreateCheckoutSession)
+	app.Post("/create-payment-intent/:id", handlers.CreatePaymentIntent)
+	app.Get("/product/:id", handlers.GetProductDetails)
 }
