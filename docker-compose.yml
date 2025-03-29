@@ -33,6 +33,13 @@ services:
     networks:
       - kong-net
 
+  data-cleaning-service:
+    image: data-cleaning-service
+    container_name: data-cleaning-service
+    env_file:
+      - ./data-cleaning-service/.env
+    networks:
+      - kong-net
 
   kong:
     image: kong:3.4

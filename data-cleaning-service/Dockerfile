@@ -1,20 +1,21 @@
-# Use official Python image
-FROM python:3.11
-
-# Set the working directory
+# Use official Node.js image as the base
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy dependencies first for caching
-COPY requirements.txt .
+# Install build tools (if necessary)
+RUN apk add --no-cache build-base
+
+# Copy package.json and package-lock.json first to leverage Docker layer caching
+COPY package.json package-lock.json ./
 
 # Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN npm install --production
 
-# Copy the rest of the app
+# Copy source code
 COPY . .
 
-# Expose FastAPI default port
-EXPOSE 8000
+# Expose the port the service will run on
+EXPOSE 3004
 
-# Run FastAPI with Uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start the application
+CMD ["node", "src/app.js"]
