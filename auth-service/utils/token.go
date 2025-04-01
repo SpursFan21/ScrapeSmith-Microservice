@@ -10,19 +10,21 @@ import (
 
 var secretKey = []byte(os.Getenv("JWT_SECRET_KEY"))
 
-func GenerateAccessToken(userID string) (string, error) {
+func GenerateAccessToken(userID string, isAdmin bool) (string, error) {
 	claims := jwt.MapClaims{
-		"sub": userID,
-		"exp": time.Now().Add(time.Minute * 15).Unix(),
+		"sub":      userID,
+		"is_admin": isAdmin,
+		"exp":      time.Now().Add(time.Minute * 15).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(secretKey)
 }
 
-func GenerateRefreshToken(userID string) (string, error) {
+func GenerateRefreshToken(userID string, isAdmin bool) (string, error) {
 	claims := jwt.MapClaims{
-		"sub": userID,
-		"exp": time.Now().Add(time.Hour * 24 * 7).Unix(), // 7 days
+		"sub":      userID,
+		"is_admin": isAdmin,
+		"exp":      time.Now().Add(time.Hour * 24 * 7).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(secretKey)

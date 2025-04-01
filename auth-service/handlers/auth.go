@@ -36,7 +36,9 @@ func Login(c *fiber.Ctx) error {
 
 	var storedPassword string
 	var userID string
-	err := db.QueryRow("SELECT id, hashed_password FROM users WHERE email=$1", req.Email).Scan(&userID, &storedPassword)
+	var isAdmin bool
+
+	err := db.QueryRow("SELECT id, hashed_password, is_admin FROM users WHERE email=$1", req.Email).Scan(&userID, &storedPassword, &isAdmin)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
 	}
@@ -46,14 +48,12 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
 	}
 
-	// Generate access token
-	accessToken, err := utils.GenerateAccessToken(userID)
+	accessToken, err := utils.GenerateAccessToken(userID, isAdmin)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate access token"})
 	}
 
-	// Generate refresh token
-	refreshToken, err := utils.GenerateRefreshToken(userID)
+	refreshToken, err := utils.GenerateRefreshToken(userID, isAdmin)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate refresh token"})
 	}
@@ -61,10 +61,10 @@ func Login(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(models.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+		IsAdmin:      isAdmin,
 	})
 }
 
-// RefreshToken handles the refreshing of the access token
 func RefreshToken(c *fiber.Ctx) error {
 	var req struct {
 		RefreshToken string `json:"refresh_token"`
@@ -89,26 +89,27 @@ func RefreshToken(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token claims"})
 	}
 
+	isAdmin, ok := claims["is_admin"].(bool)
+	if !ok {
+		isAdmin = false
+	}
+
 	log.Println("Generating new access token for user ID:", userID)
 
-	// Generate a new access token
-	newAccessToken, err := utils.GenerateAccessToken(userID)
+	newAccessToken, err := utils.GenerateAccessToken(userID, isAdmin)
 	if err != nil {
 		log.Println("Error generating new access token:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Token generation failed"})
 	}
 
-	log.Println("Successfully generated new access token for user ID:", userID)
-
 	return c.Status(fiber.StatusOK).JSON(models.TokenResponse{
 		AccessToken:  newAccessToken,
 		RefreshToken: req.RefreshToken,
+		IsAdmin:      isAdmin,
 	})
 }
 
-// Logout invalidates the user's session (client should clear the tokens)
 func Logout(c *fiber.Ctx) error {
-	// Simply return a success response (client clears tokens)
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Logged out successfully",
 	})
