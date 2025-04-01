@@ -41,6 +41,14 @@ services:
     networks:
       - kong-net
 
+  admin-service:
+    image: admin-service
+    container_name: admin-service
+    env_file:
+      - ./admin-service/.env
+    networks:
+      - kong-net
+
   kong:
     image: kong:3.4
     container_name: kong
@@ -62,6 +70,8 @@ services:
       - user-service
       - payment-service
       - scraping-service
+      - data-cleaning-service
+      - admin-service
     networks:
       - kong-net
 
