@@ -1,6 +1,8 @@
 // utils/db.js
-import { Pool } from 'pg';
+import pkg from 'pg';
 import { config } from '../config/config.js';
+
+const { Pool } = pkg;
 
 const pool = new Pool({
   host: config.db.host,
@@ -16,3 +18,4 @@ pool.on('connect', () => {
 });
 
 export default pool;
+
