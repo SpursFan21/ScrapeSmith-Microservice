@@ -1,4 +1,4 @@
-//admin-service\routes\adminRoutes.js
+//admin-service\src\routes\adminRoutes.js
 import express from 'express';
 import {
   getAllUsers,
@@ -12,6 +12,7 @@ import {
 } from '../controllers/ordersController.js';
 
 import * as ticketController from '../controllers/ticketController.js';
+import { getAdminStats } from '../controllers/adminStatsController.js';
 
 import { verifyAdmin } from '../middleware/authMiddleware.js';
 
@@ -33,5 +34,8 @@ router.get('/tickets', ticketController.getAllTickets);
 router.get('/tickets/:id', ticketController.getTicketById);
 router.post('/tickets/:id/respond', ticketController.respondToTicket);
 router.post('/tickets/:id/close', ticketController.closeTicket);
+
+// Stats route
+router.get('/stats', getAdminStats);
 
 export default router;

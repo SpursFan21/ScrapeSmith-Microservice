@@ -1,4 +1,5 @@
 // utils/db.js
+// utils/db.js
 import pkg from 'pg';
 import { config } from '../config/config.js';
 
@@ -10,7 +11,9 @@ const pool = new Pool({
   user: config.db.user,
   password: config.db.password,
   database: config.db.name,
-  ssl: config.db.ssl,
+  ssl: config.db.ssl
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
 pool.on('connect', () => {
@@ -18,4 +21,3 @@ pool.on('connect', () => {
 });
 
 export default pool;
-

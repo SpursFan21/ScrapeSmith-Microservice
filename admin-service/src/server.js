@@ -1,9 +1,10 @@
-//admin-service\server.js
+// admin-service/server.js
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import adminRoutes from './routes/adminRoutes.js';
 import { connectMongo } from './utils/mongoClient.js';
+import { connectMongoose } from './utils/mongooseConnect.js';
 
 dotenv.config();
 
@@ -18,8 +19,11 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3005;
-app.listen(PORT, () => {
-  console.log(`🚀 Admin Service running on port ${PORT}`);
-});
 
-connectMongo();
+app.listen(PORT, async () => {
+  console.log(`🚀 Admin Service running on port ${PORT}`);
+
+  // 🔌 Connect to both Mongo clients
+  connectMongo();             // Native Mongo (for scrapes/cleaned)
+  await connectMongoose();    // Mongoose (for tickets)
+});
