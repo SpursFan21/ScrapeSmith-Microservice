@@ -1,3 +1,4 @@
+// scraping-service/routes/scrape_routes.go
 package routes
 
 import (
@@ -7,5 +8,5 @@ import (
 )
 
 func SetupScrapeRoutes(app *fiber.App) {
-	app.Post("/scrape", handlers.SingleScrape)
+	app.Post("/single", handlers.SingleScrape)
 }

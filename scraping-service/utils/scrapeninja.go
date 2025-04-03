@@ -4,12 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 )
 
-func ScrapeWithScrapeNinja(url string) ([]byte, error) {
+type ScrapeNinjaResponse struct {
+	Info map[string]interface{} `json:"info"`
+	Body string                 `json:"body"`
+}
+
+func ScrapeWithScrapeNinja(url string) (string, error) {
 	apiURL := fmt.Sprintf("https://%s/scrape-js", os.Getenv("SCRAPENINJA_API_HOST"))
 
 	requestBody, _ := json.Marshal(map[string]interface{}{
@@ -20,7 +25,7 @@ func ScrapeWithScrapeNinja(url string) ([]byte, error) {
 
 	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(requestBody))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -29,14 +34,19 @@ func ScrapeWithScrapeNinja(url string) ([]byte, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer resp.Body.Close()
 
-	responseData, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return responseData, nil
+	var parsed ScrapeNinjaResponse
+	if err := json.Unmarshal(bodyBytes, &parsed); err != nil {
+		return "", err
+	}
+
+	return parsed.Body, nil
 }
