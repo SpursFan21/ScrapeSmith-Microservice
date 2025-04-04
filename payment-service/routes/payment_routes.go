@@ -9,4 +9,5 @@ import (
 func SetupPaymentRoutes(app *fiber.App) {
 	app.Post("/create-payment-intent/:id", handlers.CreatePaymentIntent)
 	app.Get("/product/:id", handlers.GetProductDetails)
+	app.Post("/validate-voucher", handlers.ValidateVoucher)
 }
