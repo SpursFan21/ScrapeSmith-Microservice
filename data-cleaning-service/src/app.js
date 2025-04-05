@@ -1,3 +1,4 @@
+// data-cleaning-service/src/app.js
 import express from 'express';
 import cleaningRoutes from './routes/cleaningRoutes.js';
 import { connectMongo } from './utils/db.js';
@@ -8,12 +9,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3004;
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
-// Connect to MongoDB
 connectMongo();
 
-// Routes
 app.use('/api/clean', cleaningRoutes);
 
 app.listen(PORT, () => {

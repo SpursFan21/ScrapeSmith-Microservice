@@ -1,3 +1,4 @@
+//scraping-service\models\scrape.go
 package models
 
 import "time"
