@@ -1,3 +1,4 @@
+// user-service\routes\user_routes.go
 package routes
 
 import (
@@ -18,4 +19,6 @@ func SetupUserRoutes(app *fiber.App, db *sql.DB) {
 	userGroup.Put("/:id/password", func(c *fiber.Ctx) error {
 		return handlers.UpdatePassword(c, db)
 	})
+
+	userGroup.Get("/me/completed-jobs", handlers.GetCompletedJobs)
 }

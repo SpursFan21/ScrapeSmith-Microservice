@@ -1,3 +1,4 @@
+//user-service\models\user.go
 package models
 
 import "database/sql"
