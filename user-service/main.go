@@ -1,4 +1,4 @@
-//user-service\main.go
+// user-service\main.go
 package main
 
 import (
@@ -9,6 +9,7 @@ import (
 
 	"user-service/database"
 	"user-service/middleware"
+	"user-service/mongo"
 	"user-service/routes"
 )
 
@@ -21,9 +22,10 @@ func main() {
 	database.Connect()
 	defer database.DB.Close()
 
+	mongo.ConnectMongo()
+
 	app := fiber.New()
 
-	// JWT Middleware
 	app.Use(middleware.JWTMiddleware())
 
 	// Setup routes
