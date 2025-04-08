@@ -21,4 +21,8 @@ func SetupUserRoutes(app *fiber.App, db *sql.DB) {
 	})
 
 	userGroup.Get("/me/completed-jobs", handlers.GetCompletedJobs)
+	userGroup.Get("/scraped-order/:orderId", handlers.GetScrapedOrderByID)
+	userGroup.Get("/cleaned-order/:orderId", handlers.GetCleanedOrderByID)
+	userGroup.Get("/orders/:orderId", handlers.GetOrderMetadata)
+
 }
