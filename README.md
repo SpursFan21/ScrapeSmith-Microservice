@@ -29,6 +29,7 @@ All services communicate via **RESTful APIs** behind a shared **Kong API Gateway
 - **Languages**: Go with Fiber, Node.js (Express), TypeScript
 - **Databases**: PostgreSQL, MongoDB Atlas
 - **Gateway**: Kong API Gateway
+- **Containerization**: Docker
 - **Auth**: JWT access + refresh tokens
 - **Payments**: Stripe API + voucher support
 - **Scraping**: ScrapeNinja API
