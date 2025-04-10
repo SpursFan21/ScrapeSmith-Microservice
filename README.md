@@ -12,7 +12,7 @@ This repository contains all backend microservices powering **ScrapeSmith** — 
 | Service                  | Description                                                                                  |
 |--------------------------|----------------------------------------------------------------------------------------------|
 | `auth-service`           | Handles user registration, login, JWT auth, and role-based permissions                       |
-| `user-service`           | Manages user profiles, dashboards, and genral frontend crud operations                       |
+| `user-service`           | Manages user profiles, dashboards, and general frontend crud operations                       |
 | `scraping-service`       | Scrapes websites using ScrapeNinja API and stores raw data in MongoDB                        |
 | `data-cleaning-service`  | Cleans scraped JS and HTML using Cheerio and stores cleaned data                             |
 | `ai-analysis-service`    | (WIP) Performs AI analysis (e.g., sentiment, clustering) on cleaned data                     |
