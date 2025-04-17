@@ -1,3 +1,4 @@
+//ScrapeSmith\ai-analysis-service\src\models\AnalyzedData.js
 import mongoose from "mongoose";
 
 const analyzedDataSchema = new mongoose.Schema({

@@ -1,29 +1,49 @@
 //ScrapeSmith\ai-analysis-service\src\server.js
-import express from  'express';
+import express from 'express';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import analysisRoutes from './routes/analysisRoutes.js';
+import queueRoutes from './routes/queueRoutes.js';
+import { processQueue } from './workers/queueProcessor.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3006;
 
+// Middleware
 app.use(express.json());
-app.use('/api/analyize', analysisRoutes);
 
+// Routes
+app.use('/api/analyize', analysisRoutes);
+app.use('/api/queue', queueRoutes);
+
+// Health check
 app.get('/', (req, res) => {
-    res.send('AI Analysis Service is running...');
+  res.send('AI Analysis Service is running...');
 });
 
-mongoose.connect(process.env.MONGO_URI, {
+// DB Connection & Queue Poller
+mongoose
+  .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-})
-.then(() => {
+  })
+  .then(() => {
     console.log('Connected to MongoDB');
-    app.listen(PORT, () => console.log(`Server is running on PORT ${PORT}`));
-})
-.catch(err => {
-    console.error(' MongoDB connection error: ', err);
-});
+
+    // Start Express
+    app.listen(PORT, () => {
+      console.log(`AI Analysis Service running on port ${PORT}`);
+    });
+
+    // Start polling queue
+    setInterval(() => {
+      processQueue().catch((err) =>
+        console.error('Queue processing error:', err.message)
+      );
+    }, 5000);
+  })
+  .catch((err) => {
+    console.error('MongoDB connection error:', err.message);
+  });
