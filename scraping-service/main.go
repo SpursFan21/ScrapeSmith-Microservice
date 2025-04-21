@@ -22,11 +22,27 @@ func main() {
 	app := fiber.New()
 	routes.SetupScrapeRoutes(app)
 
-	// Start background scrape worker
+	// Poll every 3 seconds
 	go func() {
 		for {
-			workers.ProcessScrapeQueue()
-			time.Sleep(5 * time.Second)
+			workers.ProcessScrapeBatchQueue()
+			time.Sleep(3 * time.Second)
+		}
+	}()
+
+	// Retry worker every 30 seconds
+	go func() {
+		for {
+			workers.RetryFailedScrapeJobs()
+			time.Sleep(30 * time.Second)
+		}
+	}()
+
+	// Queue maintenance every 30 minutes
+	go func() {
+		for {
+			workers.RunScrapeQueueMaintenance()
+			time.Sleep(30 * time.Minute)
 		}
 	}()
 
