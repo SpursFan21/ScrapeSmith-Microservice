@@ -1,8 +1,9 @@
-//ScrapeSmith\data-cleaning-service\src\workers\cleaningProcessor.js
+//ScrapeSmith\data-cleaning-service\src\workers\cleaningBatchProcessor.js
 
 import { QueuedCleanJob } from '../models/QueuedCleanJob.js';
 import { CleanedData } from '../models/cleanedData.js';
 import * as cheerio from 'cheerio';
+import fetch from 'node-fetch';
 
 function cleanHTMLContent(rawHtml) {
   const $ = cheerio.load(rawHtml);
@@ -21,16 +22,28 @@ function cleanHTMLContent(rawHtml) {
   return meaningfulText;
 }
 
-export async function processCleanQueue() {
-  const job = await QueuedCleanJob.findOneAndUpdate(
-    { status: 'pending' },
-    { $set: { status: 'processing', lastTriedAt: new Date() }, $inc: { attempts: 1 } },
-    { sort: { createdAt: 1 }, new: true }
-  );
+export async function processCleanBatchQueue() {
+  const jobs = await QueuedCleanJob.find({ status: 'pending' })
+    .sort({ createdAt: 1 })
+    .limit(3);
 
-  if (!job) return;
+  if (jobs.length === 0) {
+    console.log("ℹ No pending cleaning jobs");
+    return;
+  }
 
+  await Promise.all(jobs.map(job => handleCleanJob(job)));
+}
+
+async function handleCleanJob(job) {
   try {
+    // Lock the job
+    await QueuedCleanJob.findByIdAndUpdate(job._id, {
+      $set: { status: 'processing', lastTriedAt: new Date() },
+      $inc: { attempts: 1 }
+    });
+
+    // Skip if already cleaned
     const exists = await CleanedData.findOne({ orderId: job.orderId, userId: job.userId });
     if (exists) {
       await QueuedCleanJob.findByIdAndUpdate(job._id, { status: 'done' });
@@ -52,9 +65,8 @@ export async function processCleanQueue() {
     await QueuedCleanJob.findByIdAndUpdate(job._id, { status: 'done', error: null });
     console.log(`Cleaned job: ${job.orderId}`);
 
-    // Forward to AI Analysis Service
+    // Forward to AI service
     const aiQueueURL = process.env.AI_QUEUE_URL || "http://ai-analysis-service:3006/api/queue";
-
     const aiPayload = {
       orderId: job.orderId,
       userId: job.userId,
@@ -72,13 +84,13 @@ export async function processCleanQueue() {
     });
 
     if (!resp.ok) {
-      console.error(`Failed to queue AI analysis: ${resp.statusText}`);
+      console.error(`Failed to forward to AI queue: ${resp.statusText}`);
     } else {
-      console.log(`Cleaned job forwarded to AI queue: ${job.orderId}`);
+      console.log(`Sent to AI analysis: ${job.orderId}`);
     }
 
   } catch (err) {
-    console.error(`Cleaning error for ${job.orderId}:`, err);
+    console.error(`Error in cleaning job ${job.orderId}:`, err.message);
     const failStatus = job.attempts >= 3 ? 'failed' : 'pending';
     await QueuedCleanJob.findByIdAndUpdate(job._id, {
       status: failStatus,
