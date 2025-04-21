@@ -4,7 +4,9 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import analysisRoutes from './routes/analysisRoutes.js';
 import queueRoutes from './routes/queueRoutes.js';
-import { processQueue } from './workers/queueProcessor.js';
+import { processAIBatchQueue } from "./workers/aiBatchProcessor.js";
+import { retryFailedAIJobs } from "./workers/aiRetryWorker.js";
+import { runAIMaintenance } from "./workers/aiMaintenanceWorker.js";
 
 dotenv.config();
 
@@ -23,7 +25,7 @@ app.get('/', (req, res) => {
   res.send('AI Analysis Service is running...');
 });
 
-// DB Connection & Queue Poller
+// DB Connection & Pollers
 mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -32,17 +34,30 @@ mongoose
   .then(() => {
     console.log('Connected to MongoDB');
 
-    // Start Express
     app.listen(PORT, () => {
       console.log(`AI Analysis Service running on port ${PORT}`);
     });
 
-    // Start polling queue
+    // Batch poller every 3s
     setInterval(() => {
-      processQueue().catch((err) =>
-        console.error('Queue processing error:', err.message)
+      processAIBatchQueue().catch(err =>
+        console.error("Batch AI worker error:", err.message)
       );
-    }, 5000);
+    }, 3000);
+
+    // Retry failed jobs every 30s
+    setInterval(() => {
+      retryFailedAIJobs().catch(err =>
+        console.error("Retry worker error:", err.message)
+      );
+    }, 30000);
+
+    // Maintenance every 30min
+    setInterval(() => {
+      runAIMaintenance().catch(err =>
+        console.error("Maintenance worker error:", err.message)
+      );
+    }, 30 * 60 * 1000);
   })
   .catch((err) => {
     console.error('MongoDB connection error:', err.message);

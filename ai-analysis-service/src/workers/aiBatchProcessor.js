@@ -1,3 +1,5 @@
+//ScrapeSmith\ai-analysis-service\src\workers\aiBatchProcessor.js
+
 import { QueuedAIJob } from "../models/QueuedAIJob.js";
 import { AnalyzedData } from "../models/AnalyzedData.js";
 import { analysisTypePrompts } from "../utils/analysisPrompts.js";
@@ -6,16 +8,26 @@ import { analyzeText } from "../utils/openaiClient.js";
 
 const basePrompt = `You are an expert data analyst. Analyze the following cleaned web data based on the prompt instructions provided.`;
 
-export async function processQueue() {
-  const job = await QueuedAIJob.findOneAndUpdate(
-    { status: "pending" },
-    { status: "processing", lastAttemptAt: new Date(), $inc: { attempts: 1 } },
-    { sort: { createdAt: 1 }, new: true }
-  );
+export async function processAIBatchQueue() {
+  const jobs = await QueuedAIJob.find({ status: "pending" })
+    .sort({ createdAt: 1 })
+    .limit(3);
 
-  if (!job) return; // No job to process
+  if (jobs.length === 0) {
+    console.log("ℹ No pending AI analysis jobs");
+    return;
+  }
 
+  await Promise.all(jobs.map(job => handleAIJob(job)));
+}
+
+async function handleAIJob(job) {
   try {
+    await QueuedAIJob.findByIdAndUpdate(job._id, {
+      $set: { status: "processing", lastAttemptAt: new Date() },
+      $inc: { attempts: 1 },
+    });
+
     const analysisTypePrompt = analysisTypePrompts[job.analysisType] || "Provide a general analysis of the data.";
     const prompt = buildPrompt({
       basePrompt,
@@ -37,12 +49,12 @@ export async function processQueue() {
     });
 
     await QueuedAIJob.findByIdAndUpdate(job._id, { status: "done", error: null });
-
-    console.log(`[AI Analysis Complete] Job ${job.orderId}`);
+    console.log(`AI Analysis Complete: ${job.orderId}`);
   } catch (err) {
-    console.error(`[AI Analysis Failed] Job ${job.orderId}`, err.message);
+    console.error(`AI Job ${job.orderId} Failed:`, err.message);
+    const failStatus = job.attempts >= 3 ? "failed" : "pending";
     await QueuedAIJob.findByIdAndUpdate(job._id, {
-      status: job.attempts >= 3 ? "failed" : "pending",
+      status: failStatus,
       error: err.message,
     });
   }

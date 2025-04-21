@@ -18,3 +18,4 @@ export async function analyzeText(prompt) {
 
   return response.data.choices[0].message.content;
 }
+

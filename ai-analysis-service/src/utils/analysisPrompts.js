@@ -34,3 +34,4 @@ export const analysisTypePrompts = {
       "Follow the custom instructions provided by the user to analyze the text accordingly. Perform no additional analysis beyond the user-defined scope.",
   };
   
+  
