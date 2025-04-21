@@ -10,9 +10,9 @@ export const connectMongo = async () => {
       dbName: process.env.MONGO_DB,
     });
 
-    console.log(`✅ Connected to MongoDB database: ${process.env.MONGO_DB}`);
+    console.log(`Connected to MongoDB database: ${process.env.MONGO_DB}`);
   } catch (err) {
-    console.error('❌ MongoDB connection error:', err);
+    console.error('MongoDB connection error:', err);
     process.exit(1);
   }
 };

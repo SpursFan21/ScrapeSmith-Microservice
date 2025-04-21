@@ -32,7 +32,7 @@ export const cleanAndStoreData = async (req, res) => {
 
   try {
     if (!userId || !orderId || !url || !analysisType || typeof rawData !== 'string') {
-      console.warn("❌ Missing or invalid required fields in request body");
+      console.warn("Missing or invalid required fields in request body");
       return res.status(400).json({ error: 'Missing or invalid required fields' });
     }
 
@@ -63,7 +63,7 @@ export const cleanAndStoreData = async (req, res) => {
       cleanedData: cleanedDataEntry.cleanedData,
     });
   } catch (err) {
-    console.error('❌ Error during data cleaning:', err);
+    console.error('Error during data cleaning:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
