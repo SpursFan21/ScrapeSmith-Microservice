@@ -1,30 +1,26 @@
-# Use official Golang image as builder
-FROM golang:1.21 AS builder
+# Use official Node.js image as the base
+FROM node:20-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy go.mod and go.sum first (for caching dependencies)
-COPY go.mod go.sum ./
-RUN go mod tidy
+# Install build tools (for any native modules)
+RUN apk add --no-cache build-base
 
-# Copy source code
+# Copy package files first to leverage cache
+COPY package.json package-lock.json ./
+
+# Install all dependencies (not just production) so 'mongodb' is included
+RUN npm install
+
+# Copy the entire project (including src/)
 COPY . .
 
-# Build the Go binary
-RUN go build -o job-service
+# Set working directory to the source folder
+WORKDIR /app/src
 
-# Use a minimal runtime image
-FROM alpine:latest
+# Expose the port the service listens on
+EXPOSE 3007
 
-# Set working directory
-WORKDIR /root/
-
-# Copy binary from builder stage
-COPY --from=builder /app/job-service .
-
-# Expose Fiber's default port
-EXPOSE 3000
-
-# Run the binary
-CMD ["./job-service"]
+# Start the app
+CMD ["node", "server.js"]

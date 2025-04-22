@@ -57,6 +57,14 @@ services:
     networks:
       - kong-net
 
+  job-service:
+    image: job-service
+    container_name: job-service
+    env_file:
+      - ./job-service/.env
+    networks:
+      - kong-net
+
   kong:
     image: kong:3.4
     container_name: kong
@@ -81,6 +89,7 @@ services:
       - data-cleaning-service
       - admin-service
       - ai-analysis-service
+      - job-service
     networks:
       - kong-net
 

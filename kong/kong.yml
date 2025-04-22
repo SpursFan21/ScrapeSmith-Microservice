@@ -105,3 +105,18 @@ services:
           methods: ["POST", "OPTIONS"]
           headers: ["Content-Type", "Authorization"]
           credentials: true
+
+  - name: job-service
+    url: http://job-service:3007
+    routes:
+      - name: job-route
+        paths:
+          - /schedule
+        strip_path: true
+    plugins:
+      - name: cors
+        config:
+          origins: ["http://localhost:3000"]
+          methods: ["POST", "OPTIONS"]
+          headers: ["Content-Type", "Authorization"]
+          credentials: true
