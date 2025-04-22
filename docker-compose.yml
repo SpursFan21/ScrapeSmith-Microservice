@@ -49,6 +49,14 @@ services:
     networks:
       - kong-net
 
+  ai-analysis-service:
+    image: ai-analysis-service
+    container_name: ai-analysis-service
+    env_file:
+      - ./ai-analysis-service/.env
+    networks:
+      - kong-net
+
   kong:
     image: kong:3.4
     container_name: kong
@@ -72,6 +80,7 @@ services:
       - scraping-service
       - data-cleaning-service
       - admin-service
+      - ai-analysis-service
     networks:
       - kong-net
 

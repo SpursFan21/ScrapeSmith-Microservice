@@ -90,3 +90,18 @@ services:
           methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
           headers: ["Content-Type", "Authorization"]
           credentials: true
+
+  - name: ai-analysis-service
+    url: http://ai-analysis-service:3006
+    routes:
+      - name: ai-analysis-route
+        paths:
+          - /analyze
+        strip_path: true
+    plugins:
+      - name: cors
+        config:
+          origins: ["http://localhost:3000"]
+          methods: ["POST", "OPTIONS"]
+          headers: ["Content-Type", "Authorization"]
+          credentials: true

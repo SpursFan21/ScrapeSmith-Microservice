@@ -1,20 +1,26 @@
-# Use official Python image
-FROM python:3.11
+# Use official Node.js image as the base
+FROM node:20-alpine AS builder
 
-# Set the working directory
+# Set working directory
 WORKDIR /app
 
-# Copy dependencies first for caching
-COPY requirements.txt .
+# Install build tools (for any native modules)
+RUN apk add --no-cache build-base
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy package files first to leverage cache
+COPY package.json package-lock.json ./
 
-# Copy the rest of the app
+# Install all dependencies (not just production) so 'mongodb' is included
+RUN npm install
+
+# Copy the entire project (including src/)
 COPY . .
 
-# Expose FastAPI default port
-EXPOSE 8000
+# Set working directory to the source folder
+WORKDIR /app/src
 
-# Run FastAPI with Uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Expose the port the service listens on
+EXPOSE 3006
+
+# Start the app
+CMD ["node", "server.js"]
