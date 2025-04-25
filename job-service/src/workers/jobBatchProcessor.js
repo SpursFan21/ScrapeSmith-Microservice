@@ -16,7 +16,6 @@ export async function processJobBatchQueue() {
     .limit(3);
 
   if (jobs.length === 0) {
-    console.log("No scheduled jobs ready for dispatch");
     return;
   }
 

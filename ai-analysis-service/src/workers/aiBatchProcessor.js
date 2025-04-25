@@ -14,7 +14,6 @@ export async function processAIBatchQueue() {
     .limit(3);
 
   if (jobs.length === 0) {
-    console.log("ℹ No pending AI analysis jobs");
     return;
   }
 

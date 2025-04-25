@@ -28,7 +28,6 @@ export async function processCleanBatchQueue() {
     .limit(3);
 
   if (jobs.length === 0) {
-    console.log("ℹ No pending cleaning jobs");
     return;
   }
 
