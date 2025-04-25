@@ -1,4 +1,4 @@
-//user-service\middleware\auth.go
+// user-service\middleware\auth.go
 package middleware
 
 import (
@@ -7,16 +7,16 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v3"
-	"github.com/golang-jwt/jwt/v4" // Correct import for JWT claims
+	"github.com/golang-jwt/jwt/v4"
 )
 
 func JWTMiddleware() fiber.Handler {
 	return jwtware.New(jwtware.Config{
-		SigningKey:   []byte(os.Getenv("JWT_SECRET_KEY")), // Updated to match auth-service
+		SigningKey:   []byte(os.Getenv("JWT_SECRET_KEY")),
 		TokenLookup:  "header:Authorization",
 		AuthScheme:   "Bearer",
 		ContextKey:   "user",
-		Claims:       &jwt.MapClaims{}, // Updated to use jwt.MapClaims
+		Claims:       &jwt.MapClaims{},
 		ErrorHandler: jwtErrorHandler,
 	})
 }

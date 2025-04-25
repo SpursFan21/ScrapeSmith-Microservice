@@ -1,4 +1,5 @@
-// user-service\handlers\order_details.go
+//ScrapeSmith\user-service\handlers\ai_analysis.go
+
 package handlers
 
 import (
@@ -14,7 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func GetOrderMetadata(c *fiber.Ctx) error {
+func GetAIAnalysisByOrderId(c *fiber.Ctx) error {
 	orderId := c.Params("orderId")
 
 	user := c.Locals("user").(*jwt.Token)
@@ -28,16 +29,16 @@ func GetOrderMetadata(c *fiber.Ctx) error {
 		})
 	}
 
-	collection := mongo.GetCollection("scraped_data")
+	collection := mongo.GetCollection("ai_analysis_data")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var result models.ScrapeResult
-	err := collection.FindOne(ctx, bson.M{"order_id": orderId}).Decode(&result)
+	var result models.AIAnalysisResult
+	err := collection.FindOne(ctx, bson.M{"orderId": orderId}).Decode(&result)
 	if err != nil {
-		log.Printf("Failed to find scraped order metadata: %v", err)
+		log.Printf("Failed to find AI analysis result: %v", err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Order not found",
+			"error": "AI Analysis not found",
 		})
 	}
 
@@ -47,7 +48,5 @@ func GetOrderMetadata(c *fiber.Ctx) error {
 		})
 	}
 
-	// Strip the full raw data for this endpoint (metadata only)
-	result.Data = ""
 	return c.JSON(result)
 }

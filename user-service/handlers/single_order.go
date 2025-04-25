@@ -27,7 +27,7 @@ func GetScrapedOrderByID(c *fiber.Ctx) error {
 	var result models.ScrapeResult
 	err := collection.FindOne(ctx, bson.M{"order_id": orderId}).Decode(&result)
 	if err != nil {
-		log.Printf("❌ Failed to find scraped order: %v", err)
+		log.Printf("Failed to find scraped order: %v", err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Scraped order not found",
 		})
@@ -60,7 +60,7 @@ func GetCleanedOrderByID(c *fiber.Ctx) error {
 	err := collection.FindOne(ctx, bson.M{"orderId": orderId}).Decode(&result)
 
 	if err != nil {
-		log.Printf("❌ Failed to find cleaned order: %v", err)
+		log.Printf("Failed to find cleaned order: %v", err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Cleaned order not found",
 		})

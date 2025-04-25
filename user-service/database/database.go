@@ -1,4 +1,4 @@
-//user-service\database\database.go
+// user-service\database\database.go
 package database
 
 import (
@@ -44,5 +44,5 @@ func Connect() {
 	DB.SetConnMaxLifetime(5 * 60 * 1000)
 
 	// Log successful connection
-	fmt.Println("✅ user-service Connected to PostgreSQL")
+	fmt.Println("user-service Connected to PostgreSQL")
 }

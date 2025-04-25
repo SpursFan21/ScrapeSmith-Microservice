@@ -27,7 +27,7 @@ func ConnectMongo() {
 	}
 
 	MongoClient = client
-	log.Println("✅ Connected to MongoDB (user-service)")
+	log.Println("Connected to MongoDB (user-service)")
 }
 
 func GetCollection(name string) *mongo.Collection {

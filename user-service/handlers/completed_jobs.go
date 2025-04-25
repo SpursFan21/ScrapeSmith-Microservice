@@ -21,7 +21,7 @@ func GetCompletedJobs(c *fiber.Ctx) error {
 
 	userID, ok := claims["sub"].(string)
 	if !ok {
-		log.Println("❌ Failed to extract user ID from token claims")
+		log.Println("Failed to extract user ID from token claims")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Invalid token claims",
 		})
@@ -46,7 +46,7 @@ func GetCompletedJobs(c *fiber.Ctx) error {
 
 	cursor, err := collection.Find(ctx, filter, opts)
 	if err != nil {
-		log.Printf("❌ MongoDB query failed: %v", err)
+		log.Printf("MongoDB query failed: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to fetch completed jobs",
 		})
@@ -55,7 +55,7 @@ func GetCompletedJobs(c *fiber.Ctx) error {
 
 	var results []models.LightScrapeResult
 	if err := cursor.All(ctx, &results); err != nil {
-		log.Printf("❌ Failed to decode MongoDB results: %v", err)
+		log.Printf("Failed to decode MongoDB results: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to parse job data",
 		})
