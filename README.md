@@ -26,7 +26,7 @@ All services communicate via **RESTful APIs** behind a shared **Kong API Gateway
 
 ## Tech Stack
 
-- **Languages**: Go with Fiber, Node.js (Express), TypeScript
+- **Languages**: Go with Fiber, Node.js (Express)
 - **Databases**: PostgreSQL, MongoDB Atlas
 - **Gateway**: Kong API Gateway
 - **Containerization**: Docker
