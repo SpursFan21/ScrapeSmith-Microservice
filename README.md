@@ -34,7 +34,7 @@ All services communicate via **RESTful APIs** behind a shared **Kong API Gateway
 - **Payments**: Stripe API + voucher support
 - **Scraping**: ScrapeNinja API
 - **Job Scheduling**: Custom service with queue support (cron/timer-based)
-- **AI Analysis**: analysis via ChatGPT third-party APIs
+- **AI Analysis**: analysis via OpenAI third-party APIs
 
 ---
 
