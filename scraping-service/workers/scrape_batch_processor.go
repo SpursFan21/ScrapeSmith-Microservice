@@ -3,12 +3,8 @@
 package workers
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"log"
-	"net/http"
-	"os"
 	"sync"
 	"time"
 
@@ -20,6 +16,7 @@ import (
 )
 
 func ProcessScrapeBatchQueue() {
+	// Get the "queued_scrape_jobs" collection
 	coll := utils.GetCollection("queued_scrape_jobs")
 
 	// Fetch up to 3 pending jobs
@@ -39,9 +36,11 @@ func ProcessScrapeBatchQueue() {
 	}
 
 	if len(jobs) == 0 {
+		log.Println("No pending jobs to process")
 		return
 	}
 
+	// Use WaitGroup to handle concurrent processing
 	var wg sync.WaitGroup
 	for _, job := range jobs {
 		wg.Add(1)
@@ -50,8 +49,8 @@ func ProcessScrapeBatchQueue() {
 			processSingleScrapeJob(j)
 		}(job)
 
-		// Lock job immediately (status = processing)
-		_, err := coll.UpdateOne(context.TODO(), bson.M{"order_id": job.OrderID}, bson.M{
+		// Lock the job immediately (status = processing)
+		_, err := coll.UpdateOne(context.TODO(), bson.M{"order_id": job.OrderID, "status": "pending"}, bson.M{
 			"$set": bson.M{
 				"status":        "processing",
 				"last_tried_at": time.Now(),
@@ -63,19 +62,22 @@ func ProcessScrapeBatchQueue() {
 		}
 	}
 
+	// Wait for all workers to finish
 	wg.Wait()
 }
 
 func processSingleScrapeJob(job models.QueuedScrapeJob) {
-	log.Printf("⚙️ Scraping job %s", job.OrderID)
+	log.Printf("Scraping job %s", job.OrderID)
 
+	// Scrape the content using the ScrapeNinja API
 	body, err := utils.ScrapeWithScrapeNinja(job.URL)
 	if err != nil {
 		log.Printf("Scrape failed for %s: %v", job.OrderID, err)
-		retryOrFail(job.OrderID, job.Attempts)
+		failJob(job.OrderID)
 		return
 	}
 
+	// Store the raw scrape data in the "scraped_data" collection
 	scrapedColl := utils.GetCollection("scraped_data")
 	_, err = scrapedColl.InsertOne(context.TODO(), bson.M{
 		"order_id":      job.OrderID,
@@ -92,52 +94,38 @@ func processSingleScrapeJob(job models.QueuedScrapeJob) {
 		return
 	}
 
-	payload := map[string]interface{}{
-		"orderId":      job.OrderID,
-		"userId":       job.UserID,
-		"url":          job.URL,
-		"analysisType": job.AnalysisType,
-		"customScript": job.CustomScript,
-		"createdAt":    job.CreatedAt,
-		"rawData":      body,
-	}
-	jsonBody, _ := json.Marshal(payload)
-
-	cleanerURL := os.Getenv("DATA_CLEANER_URL")
-	if cleanerURL == "" {
-		cleanerURL = "http://data-cleaning-service:3004/api/clean"
-	}
-
-	resp, err := http.Post(cleanerURL, "application/json", bytes.NewBuffer(jsonBody))
+	// Insert the scrape job into the data-cleaning queue (MongoDB)
+	cleanerColl := utils.GetCollection("queued_clean_jobs") // Target collection in data-cleaning service MongoDB
+	_, err = cleanerColl.InsertOne(context.TODO(), bson.M{
+		"order_id":      job.OrderID,
+		"user_id":       job.UserID,
+		"url":           job.URL,
+		"analysis_type": job.AnalysisType,
+		"custom_script": job.CustomScript,
+		"raw_data":      body, // The raw data to be cleaned
+		"status":        "pending",
+		"created_at":    job.CreatedAt,
+	})
 	if err != nil {
-		log.Printf("Failed to send to cleaner for job %s: %v", job.OrderID, err)
+		log.Printf("Failed to insert job into clean queue for %s: %v", job.OrderID, err)
 		failJob(job.OrderID)
 		return
 	}
-	defer resp.Body.Close()
-	log.Printf("Job %s cleaned successfully", job.OrderID)
 
-	// Mark as done
+	log.Printf("Job %s added to clean queue", job.OrderID)
+
+	// Mark original scrape job as done
 	utils.GetCollection("queued_scrape_jobs").UpdateOne(context.TODO(),
 		bson.M{"order_id": job.OrderID},
-		bson.M{"$set": bson.M{"status": "done"}},
-	)
-}
-
-func retryOrFail(orderID string, attempts int) {
-	status := "failed"
-	if attempts < 3 {
-		status = "pending"
-	}
-	utils.GetCollection("queued_scrape_jobs").UpdateOne(context.TODO(),
-		bson.M{"order_id": orderID},
-		bson.M{"$set": bson.M{"status": status}},
-	)
+		bson.M{"$set": bson.M{"status": "done"}})
 }
 
 func failJob(orderID string) {
-	utils.GetCollection("queued_scrape_jobs").UpdateOne(context.TODO(),
+	// Update the job status to "failed" in the queue
+	_, err := utils.GetCollection("queued_scrape_jobs").UpdateOne(context.TODO(),
 		bson.M{"order_id": orderID},
-		bson.M{"$set": bson.M{"status": "failed"}},
-	)
+		bson.M{"$set": bson.M{"status": "failed"}})
+	if err != nil {
+		log.Printf("Failed to mark job %s as failed: %v", orderID, err)
+	}
 }

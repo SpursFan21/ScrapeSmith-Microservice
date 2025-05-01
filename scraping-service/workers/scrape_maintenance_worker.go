@@ -1,5 +1,4 @@
-//ScrapeSmith\scraping-service\workers\scrape_maintenance_worker.go
-
+// ScrapeSmith\scraping-service\workers\scrape_maintenance_worker.go
 package workers
 
 import (
@@ -27,7 +26,7 @@ func RunScrapeQueueMaintenance() {
 		log.Printf("🧹 Cleaned %d old done jobs", delDone.DeletedCount)
 	}
 
-	// 2. Delete permanently failed jobs (customize this as needed)
+	// 2. Delete permanently failed jobs
 	delFailed, err := coll.DeleteMany(context.TODO(), bson.M{
 		"status": "permanently_failed",
 	})
@@ -44,12 +43,12 @@ func RunScrapeQueueMaintenance() {
 		"last_tried_at": bson.M{"$lt": stuckCutoff},
 	}, bson.M{
 		"$set": bson.M{
-			"status": "failed",
+			"status": "failed", // Mark stuck jobs as "failed"
 		},
 	})
 	if err != nil {
 		log.Printf("Error rescuing stuck jobs: %v", err)
 	} else if rescue.ModifiedCount > 0 {
-		log.Printf("Recovered %d stuck jobs", rescue.ModifiedCount)
+		log.Printf("Recovered %d stuck jobs and marked as failed", rescue.ModifiedCount)
 	}
 }

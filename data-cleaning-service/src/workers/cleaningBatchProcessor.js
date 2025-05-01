@@ -2,9 +2,10 @@
 
 import { QueuedCleanJob } from '../models/QueuedCleanJob.js';
 import { CleanedData } from '../models/cleanedData.js';
+import { QueuedAIJob } from '../../ai-analysis-service/src/models/QueuedAIJob.js';
 import * as cheerio from 'cheerio';
-import fetch from 'node-fetch';
 
+// Function to clean HTML content
 function cleanHTMLContent(rawHtml) {
   const $ = cheerio.load(rawHtml);
   $('style, script, link, button, nav, footer, header').remove();
@@ -64,9 +65,8 @@ async function handleCleanJob(job) {
     await QueuedCleanJob.findByIdAndUpdate(job._id, { status: 'done', error: null });
     console.log(`Cleaned job: ${job.orderId}`);
 
-    // Forward to AI service
-    const aiQueueURL = process.env.AI_QUEUE_URL || "http://ai-analysis-service:3006/api/queue";
-    const aiPayload = {
+    // Add cleaned data directly to the AI queue in MongoDB
+    const aiJob = {
       orderId: job.orderId,
       userId: job.userId,
       url: job.url,
@@ -76,17 +76,10 @@ async function handleCleanJob(job) {
       cleanedData: cleanedContent,
     };
 
-    const resp = await fetch(aiQueueURL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(aiPayload),
-    });
+    // Insert the AI job into the AI service's MongoDB Atlas collection (AI queue)
+    await QueuedAIJob.create(aiJob);  // Direct insertion into the AI service's queue
 
-    if (!resp.ok) {
-      console.error(`Failed to forward to AI queue: ${resp.statusText}`);
-    } else {
-      console.log(`Sent to AI analysis: ${job.orderId}`);
-    }
+    console.log(`Job added to AI queue in MongoDB: ${job.orderId}`);
 
   } catch (err) {
     console.error(`Error in cleaning job ${job.orderId}:`, err.message);

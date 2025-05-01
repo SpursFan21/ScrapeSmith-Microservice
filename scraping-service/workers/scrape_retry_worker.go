@@ -15,19 +15,19 @@ import (
 func RetryFailedScrapeJobs() {
 	coll := utils.GetCollection("queued_scrape_jobs")
 
-	// Find 1–2 failed jobs eligible for retry (30s+ since last attempt, max 3 attempts)
+	// Find failed jobs eligible for retry (30s+ since last attempt, max 3 attempts)
 	filter := bson.M{
 		"status":   "failed",
-		"attempts": bson.M{"$lt": 3},
+		"attempts": bson.M{"$lt": 3}, // Max 3 attempts
 		"last_tried_at": bson.M{
-			"$lte": time.Now().Add(-30 * time.Second),
+			"$lte": time.Now().Add(-30 * time.Second), // Retry after 30s from last attempt
 		},
 	}
 
 	update := bson.M{
 		"$set": bson.M{
-			"status":        "pending",
-			"last_tried_at": time.Now(),
+			"status":        "pending",  // Reset status to "pending" for retry
+			"last_tried_at": time.Now(), // Update last tried time
 		},
 	}
 

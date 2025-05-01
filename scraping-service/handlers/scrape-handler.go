@@ -22,18 +22,20 @@ type ScrapeRequest struct {
 }
 
 func SingleScrape(c *fiber.Ctx) error {
+	// Step 1: Check for Authorization header
 	authHeader := c.Get("Authorization")
 	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-		log.Println("Missing Authorization header")
+		log.Println("Missing or invalid Authorization header")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Missing or invalid Authorization header",
 		})
 	}
 
+	// Step 2: Extract and validate JWT token
 	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 	secret := os.Getenv("JWT_SECRET_KEY")
 	if secret == "" {
-		log.Println("JWT_SECRET_KEY missing from env")
+		log.Println("JWT_SECRET_KEY missing from environment variables")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Server misconfiguration: missing JWT_SECRET_KEY",
 		})
@@ -42,13 +44,14 @@ func SingleScrape(c *fiber.Ctx) error {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
 	})
-	if err != nil || !token.Valid {
+	if err != nil {
 		log.Printf("JWT parse error: %v", err)
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Invalid or expired token",
 		})
 	}
 
+	// Step 3: Parse claims and validate user ID
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		log.Println("Failed to parse token claims")
@@ -59,9 +62,9 @@ func SingleScrape(c *fiber.Ctx) error {
 
 	userIDVal, ok := claims["sub"]
 	if !ok {
-		log.Println("user_id (sub) missing in token claims")
+		log.Println("Missing user_id (sub) in token claims")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "user_id missing in token claims",
+			"error": "Missing user_id (sub) in token claims",
 		})
 	}
 
@@ -73,6 +76,7 @@ func SingleScrape(c *fiber.Ctx) error {
 		})
 	}
 
+	// Step 4: Parse request body
 	var req ScrapeRequest
 	if err := c.BodyParser(&req); err != nil {
 		log.Printf("Failed to parse request body: %v", err)
@@ -81,6 +85,7 @@ func SingleScrape(c *fiber.Ctx) error {
 		})
 	}
 
+	// Step 5: Create a new job
 	orderId := uuid.New().String()
 	createdAt := time.Now()
 
@@ -95,6 +100,7 @@ func SingleScrape(c *fiber.Ctx) error {
 		Attempts:     0,
 	}
 
+	// Step 6: Insert the job into the queue
 	collection := utils.GetCollection("queued_scrape_jobs")
 	_, err = collection.InsertOne(c.Context(), job)
 	if err != nil {
@@ -104,6 +110,7 @@ func SingleScrape(c *fiber.Ctx) error {
 		})
 	}
 
+	// Step 7: Return response with job details
 	return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
 		"message":    "Job received and queued for scraping",
 		"order_id":   orderId,
