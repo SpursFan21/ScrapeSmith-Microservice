@@ -31,6 +31,7 @@ export async function runJobQueueMaintenance() {
     { $set: { status: 'failed' } }
   );
   if (recovered.modifiedCount > 0) {
-    console.log(`Recovered ${recovered.modifiedCount} stuck jobs`);
+    console.log(`Recovered ${recovered.modifiedCount} stuck jobs and marked as failed`);
   }
 }
+
