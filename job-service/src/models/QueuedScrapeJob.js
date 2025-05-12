@@ -1,7 +1,6 @@
-//ScrapeSmith\job-service\src\models\QueuedScrapeJob.js
+// ScrapeSmith/job-service/src/models/QueuedScrapeJob.js
 
-
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 // Define the schema for QueuedScrapeJob
 const queuedScrapeJobSchema = new mongoose.Schema({
@@ -46,7 +45,5 @@ const queuedScrapeJobSchema = new mongoose.Schema({
   }
 });
 
-// Create and export the model based on the schema
-const QueuedScrapeJob = mongoose.model('QueuedScrapeJob', queuedScrapeJobSchema);
-
-module.exports = QueuedScrapeJob;
+// Create and export the model
+export const QueuedScrapeJob = mongoose.model('QueuedScrapeJob', queuedScrapeJobSchema);

@@ -2,7 +2,7 @@
 
 import { QueuedCleanJob } from '../models/QueuedCleanJob.js';
 import { CleanedData } from '../models/cleanedData.js';
-import { QueuedAIJob } from '../../ai-analysis-service/src/models/QueuedAIJob.js';
+import { QueuedAIJob } from '../models/QueuedAIJob.js';
 import * as cheerio from 'cheerio';
 
 // Function to clean HTML content
