@@ -1,3 +1,4 @@
+//ScrapeSmith\auth-service\config\config.go
 package config
 
 import (

@@ -1,3 +1,4 @@
+//ScrapeSmith\auth-service\models\token.go
 package models
 
 type TokenResponse struct {

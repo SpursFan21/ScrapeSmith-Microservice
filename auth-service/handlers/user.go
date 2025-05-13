@@ -1,64 +1,56 @@
+// ScrapeSmith\auth-service\handlers\user.go
 package handlers
 
 import (
-	"database/sql"
+	"auth-service/database"
+	"context"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-var db *sql.DB
-
-// SetDB initializes the database connection (called from main)
-func SetDB(database *sql.DB) {
-	db = database
-}
-
-// GetUserProfile handles fetching the user profile
 func GetUserProfile(c *fiber.Ctx) error {
-	userID := c.Locals("user").(string) // Get user ID from JWT claims
+	userID := c.Locals("user").(string)
+	oid, _ := primitive.ObjectIDFromHex(userID)
 
-	var username, email string
-	err := db.QueryRow("SELECT username, email FROM users WHERE id=$1", userID).Scan(&username, &email)
+	var user struct {
+		Username string `bson:"username"`
+		Email    string `bson:"email"`
+	}
+	err := database.UserCollection.FindOne(context.TODO(), bson.M{"_id": oid}).Decode(&user)
 	if err != nil {
-		log.Println("Error fetching user profile:", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Unable to fetch user profile",
-		})
+		log.Println("User lookup error:", err)
+		return c.Status(500).JSON(fiber.Map{"error": "User not found"})
 	}
 
 	return c.JSON(fiber.Map{
 		"id":       userID,
-		"username": username,
-		"email":    email,
+		"username": user.Username,
+		"email":    user.Email,
 	})
 }
 
-// UpdateUserProfile handles updating the user profile
 func UpdateUserProfile(c *fiber.Ctx) error {
-	type UpdateRequest struct {
+	userID := c.Locals("user").(string)
+	oid, _ := primitive.ObjectIDFromHex(userID)
+
+	var req struct {
 		Username string `json:"username"`
 		Email    string `json:"email"`
 	}
-
-	userID := c.Locals("user").(string) // Get user ID from JWT claims
-	var req UpdateRequest
-
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request payload",
-		})
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
-	_, err := db.Exec("UPDATE users SET username=$1, email=$2 WHERE id=$3", req.Username, req.Email, userID)
+	_, err := database.UserCollection.UpdateOne(context.TODO(),
+		bson.M{"_id": oid},
+		bson.M{"$set": bson.M{"username": req.Username, "email": req.Email}},
+	)
 	if err != nil {
-		log.Println("Error updating user profile:", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Unable to update profile",
-		})
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to update"})
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Profile updated successfully",
-	})
+	return c.JSON(fiber.Map{"message": "Profile updated"})
 }

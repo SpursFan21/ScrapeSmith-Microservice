@@ -1,3 +1,4 @@
+// ScrapeSmith\auth-service\main.go
 package main
 
 import (
@@ -8,21 +9,19 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
-	_ "github.com/lib/pq"
 )
 
-func initDB() {
-	database.Connect()
-}
-
 func main() {
+	// Load env vars
 	config.LoadEnv()
-	initDB()
-	handlers.SetDB(database.DB)
 
+	// Connect to MongoDB
+	database.Connect()
+
+	// Start Fiber app
 	app := fiber.New()
 
-	// Public route (No Auth Required)
+	// Public route
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Welcome to Auth Service"})
 	})
@@ -33,7 +32,7 @@ func main() {
 	app.Post("/refresh", handlers.RefreshToken)
 	app.Post("/logout", handlers.Logout)
 
-	// Protected routes (using JWT middleware)
+	// Protected routes
 	app.Use(middlewares.JWTMiddleware())
 	app.Get("/user/profile", handlers.GetUserProfile)
 	app.Put("/user/profile", handlers.UpdateUserProfile)

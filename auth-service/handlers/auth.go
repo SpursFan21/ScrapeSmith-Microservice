@@ -1,12 +1,15 @@
-//auth-service\handlers\auth.go
+// auth-service\handlers\auth.go
 package handlers
 
 import (
+	"auth-service/database"
 	"auth-service/models"
 	"auth-service/utils"
-	"log"
+	"context"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -16,17 +19,25 @@ func Signup(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to hash password"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Hash error"})
 	}
 
-	_, err = db.Exec("INSERT INTO users (email, username, hashed_password) VALUES ($1, $2, $3)", req.Email, req.Username, hashedPassword)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error creating user"})
+	user := models.User{
+		Email:          req.Email,
+		Username:       req.Username,
+		HashedPassword: string(hashed),
+		IsAdmin:        false,
+		CreatedAt:      time.Now().Unix(),
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "User registered successfully"})
+	_, err = database.UserCollection.InsertOne(context.TODO(), user)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not create user"})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "User registered"})
 }
 
 func Login(c *fiber.Ctx) error {
@@ -35,34 +46,24 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 	}
 
-	var storedPassword string
-	var userID string
-	var isAdmin bool
-
-	err := db.QueryRow("SELECT id, hashed_password, is_admin FROM users WHERE email=$1", req.Email).Scan(&userID, &storedPassword, &isAdmin)
+	var user models.User
+	err := database.UserCollection.FindOne(context.TODO(), bson.M{"email": req.Email}).Decode(&user)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(req.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(req.Password))
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
 	}
 
-	accessToken, err := utils.GenerateAccessToken(userID, isAdmin)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate access token"})
-	}
+	accessToken, _ := utils.GenerateAccessToken(user.ID.Hex(), user.IsAdmin)
+	refreshToken, _ := utils.GenerateRefreshToken(user.ID.Hex(), user.IsAdmin)
 
-	refreshToken, err := utils.GenerateRefreshToken(userID, isAdmin)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate refresh token"})
-	}
-
-	return c.Status(fiber.StatusOK).JSON(models.TokenResponse{
+	return c.JSON(models.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		IsAdmin:      isAdmin,
+		IsAdmin:      user.IsAdmin,
 	})
 }
 
@@ -71,47 +72,35 @@ func RefreshToken(c *fiber.Ctx) error {
 		RefreshToken string `json:"refresh_token"`
 	}
 
-	if err := c.BodyParser(&req); err != nil {
-		log.Println("Error parsing refresh token request:", err)
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
+	if err := c.BodyParser(&req); err != nil || req.RefreshToken == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid refresh request"})
 	}
-
-	log.Println("Received refresh token request with token:", req.RefreshToken)
 
 	claims, err := utils.ParseToken(req.RefreshToken)
 	if err != nil {
-		log.Println("Error parsing refresh token:", err)
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid refresh token"})
 	}
 
 	userID, ok := claims["sub"].(string)
 	if !ok {
-		log.Println("Invalid token claims, no 'sub' field found:", claims)
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token claims"})
 	}
 
-	isAdmin, ok := claims["is_admin"].(bool)
-	if !ok {
-		isAdmin = false
-	}
+	isAdmin, _ := claims["is_admin"].(bool)
 
-	log.Println("Generating new access token for user ID:", userID)
-
-	newAccessToken, err := utils.GenerateAccessToken(userID, isAdmin)
+	accessToken, err := utils.GenerateAccessToken(userID, isAdmin)
 	if err != nil {
-		log.Println("Error generating new access token:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Token generation failed"})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(models.TokenResponse{
-		AccessToken:  newAccessToken,
-		RefreshToken: req.RefreshToken,
+	return c.JSON(models.TokenResponse{
+		AccessToken:  accessToken,
+		RefreshToken: req.RefreshToken, // keep same refresh token
 		IsAdmin:      isAdmin,
 	})
 }
 
 func Logout(c *fiber.Ctx) error {
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Logged out successfully",
-	})
+	// For stateless JWT, logout is handled client-side (clearing tokens)
+	return c.JSON(fiber.Map{"message": "Logged out successfully"})
 }
