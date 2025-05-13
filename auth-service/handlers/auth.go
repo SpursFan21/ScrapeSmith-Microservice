@@ -29,7 +29,7 @@ func Signup(c *fiber.Ctx) error {
 		Username:       req.Username,
 		HashedPassword: string(hashed),
 		IsAdmin:        false,
-		CreatedAt:      time.Now().Unix(),
+		CreatedAt:      time.Now(),
 	}
 
 	_, err = database.UserCollection.InsertOne(context.TODO(), user)

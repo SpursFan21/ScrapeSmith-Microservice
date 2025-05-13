@@ -1,14 +1,18 @@
-//user-service\models\user.go
+// user-service\models\user.go
 package models
 
-import "database/sql"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type User struct {
-	ID             string         `json:"id"`
-	Username       string         `json:"username"`
-	Email          string         `json:"email"`
-	Name           sql.NullString `json:"name"`
-	Image          sql.NullString `json:"image"`
-	HashedPassword string         `json:"-"`
-	CreatedAt      string         `json:"created_at"`
+	ID             primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Username       string             `json:"username" bson:"username"`
+	Email          string             `json:"email" bson:"email"`
+	Name           string             `json:"name" bson:"name"`
+	Image          string             `json:"image" bson:"image"`
+	HashedPassword string             `json:"-" bson:"hashed_password"`
+	CreatedAt      time.Time          `json:"created_at" bson:"created_at"`
 }

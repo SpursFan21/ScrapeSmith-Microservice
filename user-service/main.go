@@ -7,7 +7,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 
-	"user-service/database"
 	"user-service/middleware"
 	"user-service/mongo"
 	"user-service/routes"
@@ -19,18 +18,17 @@ func main() {
 		log.Println("No .env file found, using system environment variables")
 	}
 
-	database.Connect()
-	defer database.DB.Close()
-
+	// Connect to MongoDB
 	mongo.ConnectMongo()
 
 	app := fiber.New()
 
+	// Apply JWT middleware
 	app.Use(middleware.JWTMiddleware())
 
-	// Setup routes
-	routes.SetupUserRoutes(app, database.DB)
+	// Setup routes (no longer pass db)
+	routes.SetupUserRoutes(app)
 
-	log.Println("User service running on port 3001")
+	log.Println("✅ User service running on port 3001")
 	log.Fatal(app.Listen(":3001"))
 }

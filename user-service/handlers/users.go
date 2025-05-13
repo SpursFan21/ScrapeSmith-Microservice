@@ -1,48 +1,54 @@
-//user-service\handlers\users.go
+// user-service\handlers\users.go
+// user-service\handlers\users.go
 package handlers
 
 import (
-	"database/sql"
+	"context"
 	"log"
-	"net/http"
-
+	"time"
 	"user-service/models"
+	"user-service/mongo"
+	"user-service/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // GetUser fetches the user's account data
-func GetUser(c *fiber.Ctx, db *sql.DB) error {
+func GetUser(c *fiber.Ctx) error {
 	userID := c.Params("id")
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID"})
+	}
 
 	var user models.User
-	err := db.QueryRow(`
-        SELECT id, username, email, name, image, created_at
-        FROM users
-        WHERE id = $1`, userID).Scan(&user.ID, &user.Username, &user.Email, &user.Name, &user.Image, &user.CreatedAt)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = mongo.GetCollection("users").FindOne(ctx, bson.M{"_id": oid}).Decode(&user)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
-		}
-		log.Printf("Error fetching user: %v", err)
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
 	}
 
-	response := fiber.Map{
-		"id":         user.ID,
+	return c.JSON(fiber.Map{
+		"id":         user.ID.Hex(),
 		"username":   user.Username,
 		"email":      user.Email,
-		"name":       user.Name.String,
-		"image":      user.Image.String,
+		"name":       user.Name,
+		"image":      user.Image,
 		"created_at": user.CreatedAt,
-	}
-
-	return c.JSON(response)
+	})
 }
 
 // UpdateUser updates the user's account data
-func UpdateUser(c *fiber.Ctx, db *sql.DB) error {
+func UpdateUser(c *fiber.Ctx) error {
 	userID := c.Params("id")
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID"})
+	}
 
 	var updateData struct {
 		Username string `json:"username"`
@@ -52,19 +58,72 @@ func UpdateUser(c *fiber.Ctx, db *sql.DB) error {
 	}
 	if err := c.BodyParser(&updateData); err != nil {
 		log.Println("Error parsing update request:", err)
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	_, err := db.Exec(`
-		UPDATE users
-		SET username = $1, email = $2, name = $3, image = $4
-		WHERE id = $5`,
-		updateData.Username, updateData.Email, updateData.Name, updateData.Image, userID)
+	update := bson.M{"$set": bson.M{
+		"username": updateData.Username,
+		"email":    updateData.Email,
+		"name":     updateData.Name,
+		"image":    updateData.Image,
+	}}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = mongo.GetCollection("users").UpdateOne(ctx, bson.M{"_id": oid}, update)
 	if err != nil {
 		log.Println("Error updating user data:", err)
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update user"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update user"})
 	}
 
 	return c.JSON(fiber.Map{"message": "User updated successfully"})
+}
+
+// UpdatePassword securely updates the user's password
+func UpdatePassword(c *fiber.Ctx) error {
+	userID := c.Params("id")
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID"})
+	}
+
+	var input struct {
+		OldPassword string `json:"old_password"`
+		NewPassword string `json:"new_password"`
+	}
+	if err := c.BodyParser(&input); err != nil {
+		log.Println("Failed to parse request body:", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	var user models.User
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = mongo.GetCollection("users").FindOne(ctx, bson.M{"_id": oid}).Decode(&user)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+	}
+
+	if !utils.CheckPassword(user.HashedPassword, input.OldPassword) {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Incorrect current password"})
+	}
+
+	newHashedPassword, err := utils.HashPassword(input.NewPassword)
+	if err != nil {
+		log.Println("Error hashing new password:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to hash password"})
+	}
+
+	_, err = mongo.GetCollection("users").UpdateOne(ctx,
+		bson.M{"_id": oid},
+		bson.M{"$set": bson.M{"hashed_password": newHashedPassword}},
+	)
+	if err != nil {
+		log.Println("Error updating password:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update password"})
+	}
+
+	return c.JSON(fiber.Map{"message": "Password updated successfully"})
 }

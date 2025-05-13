@@ -9,7 +9,6 @@ require (
 	github.com/gofiber/jwt/v3 v3.3.10
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/joho/godotenv v1.5.1
-	github.com/lib/pq v1.10.9
 	go.mongodb.org/mongo-driver v1.17.3
 	golang.org/x/crypto v0.36.0
 )

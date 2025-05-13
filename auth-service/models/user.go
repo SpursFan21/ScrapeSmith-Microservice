@@ -1,7 +1,11 @@
 // ScrapeSmith\auth-service\models\user.go
 package models
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type User struct {
 	ID             primitive.ObjectID `bson:"_id,omitempty"`
@@ -9,7 +13,7 @@ type User struct {
 	Username       string             `bson:"username"`
 	HashedPassword string             `bson:"hashed_password"`
 	IsAdmin        bool               `bson:"is_admin"`
-	CreatedAt      int64              `bson:"created_at"`
+	CreatedAt      time.Time          `bson:"created_at"`
 }
 
 type SignupRequest struct {
