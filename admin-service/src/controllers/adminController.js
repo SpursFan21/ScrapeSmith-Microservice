@@ -1,13 +1,13 @@
 // admin-service/controllers/adminController.js
-import pool from '../utils/db.js';
+
+import mongoose from 'mongoose';
+import { User } from '../models/User.js';
 
 // Get all users
 export const getAllUsers = async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT id, email, username, is_admin, created_at FROM users'
-    );
-    res.json(result.rows);
+    const users = await User.find().select('-hashed_password');
+    res.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).json({ error: 'Failed to retrieve users' });
@@ -19,17 +19,22 @@ export const editUser = async (req, res) => {
   const { id } = req.params;
   const { email, username, is_admin } = req.body;
 
-  try {
-    const query =
-      'UPDATE users SET email = $1, username = $2, is_admin = $3 WHERE id = $4 RETURNING id, email, username, is_admin';
-    const values = [email, username, is_admin, id];
-    const result = await pool.query(query, values); // 🔁 Changed `db` to `pool`
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
 
-    if (result.rowCount === 0) {
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { email, username, is_admin },
+      { new: true, select: '-hashed_password' }
+    );
+
+    if (!updatedUser) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ message: 'User updated successfully', user: result.rows[0] });
+    res.json({ message: 'User updated successfully', user: updatedUser });
   } catch (err) {
     console.error('Error updating user:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -40,10 +45,14 @@ export const editUser = async (req, res) => {
 export const deleteUser = async (req, res) => {
   const { id } = req.params;
 
-  try {
-    const result = await pool.query('DELETE FROM users WHERE id = $1', [id]); // 🔁 Changed `db` to `pool`
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
 
-    if (result.rowCount === 0) {
+  try {
+    const result = await User.findByIdAndDelete(id);
+
+    if (!result) {
       return res.status(404).json({ error: 'User not found' });
     }
 

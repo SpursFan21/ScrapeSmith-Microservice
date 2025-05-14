@@ -1,30 +1,21 @@
 //admin-service\src\controllers\adminStatsController.js
-import pool from '../utils/db.js';
-import { getMongoClient } from '../utils/mongoClient.js';
+
+import { User } from '../models/User.js';
+import { Ticket } from '../models/ticketModel.js';
+import mongoose from 'mongoose';
 
 export const getAdminStats = async (req, res) => {
   try {
-    // 1. PostgreSQL queries
-    const userCountRes = await pool.query('SELECT COUNT(*) FROM users');
-    const adminCountRes = await pool.query('SELECT COUNT(*) FROM users WHERE is_admin = TRUE');
+    const db = mongoose.connection.db;
 
-    const totalUsers = parseInt(userCountRes.rows[0].count, 10);
-    const totalAdmins = parseInt(adminCountRes.rows[0].count, 10);
+    const [totalUsers, totalAdmins, totalOrders, openTickets] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ is_admin: true }),
+      db.collection('scrapes').countDocuments(),
+      Ticket.countDocuments({ status: 'open' }),
+    ]);
 
-    // 2. MongoDB queries
-    const client = await getMongoClient();
-    const db = client.db(process.env.MONGO_DB);
-
-    const totalOrders = await db.collection('scrapes').countDocuments();
-    const openTickets = await db.collection('tickets').countDocuments({ status: 'open' });
-
-    // 3. Response
-    res.json({
-      totalUsers,
-      totalAdmins,
-      totalOrders,
-      openTickets,
-    });
+    res.json({ totalUsers, totalAdmins, totalOrders, openTickets });
   } catch (error) {
     console.error('Error fetching admin stats:', error);
     res.status(500).json({ error: 'Failed to load admin stats' });
