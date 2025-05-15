@@ -19,6 +19,21 @@ func Signup(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 	}
 
+	//  Check if email or username already exists
+	existsFilter := bson.M{"$or": []bson.M{
+		{"email": req.Email},
+		{"username": req.Username},
+	}}
+
+	count, err := database.UserCollection.CountDocuments(context.TODO(), existsFilter)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Database error"})
+	}
+	if count > 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Email or username already in use"})
+	}
+
+	// Continue with creation
 	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Hash error"})
