@@ -6,12 +6,10 @@ export const scheduleJob = async (req, res) => {
   try {
     const jobDataArray = req.body; // Expecting an array of jobs
 
-    // Step 1: Ensure jobDataArray is an array
     if (!Array.isArray(jobDataArray)) {
       return res.status(400).json({ error: 'Expected an array of job data' });
     }
 
-    // Step 2: Validate each job object
     const validJobs = [];
     const invalidJobs = [];
 
@@ -51,7 +49,6 @@ export const scheduleJob = async (req, res) => {
         continue;
       }
 
-      // Force runAt to UTC ISO format
       const utcRunAt = new Date(parsedRunAt.toISOString());
 
       validJobs.push({
@@ -70,13 +67,19 @@ export const scheduleJob = async (req, res) => {
       });
     }
 
-    // Step 3: Insert all valid jobs into the ScheduledJob collection
     const newJobs = await ScheduledJob.insertMany(validJobs);
 
-    // Step 4: Return response with job details
+    const responseJobs = newJobs.map(job => ({
+      id: job._id,
+      url: job.url,
+      analysisType: job.analysisType,
+      runAtUTC: job.runAt,
+      runAtLocal: job.runAt.toLocaleString(), // Adds user's local time (based on server TZ)
+    }));
+
     res.status(201).json({
       message: `${newJobs.length} job(s) scheduled successfully`,
-      jobIds: newJobs.map((job) => job._id),
+      jobs: responseJobs,
     });
   } catch (err) {
     console.error('Failed to schedule jobs:', err.message);
