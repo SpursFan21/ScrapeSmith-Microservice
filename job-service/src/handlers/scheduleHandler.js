@@ -4,7 +4,7 @@ import { ScheduledJob } from '../models/ScheduledJob.js';
 
 export const scheduleJob = async (req, res) => {
   try {
-    const jobDataArray = req.body;  // Expecting an array of jobs
+    const jobDataArray = req.body; // Expecting an array of jobs
 
     // Step 1: Ensure jobDataArray is an array
     if (!Array.isArray(jobDataArray)) {
@@ -12,31 +12,55 @@ export const scheduleJob = async (req, res) => {
     }
 
     // Step 2: Validate each job object
+    const validJobs = [];
     const invalidJobs = [];
+
     for (const [index, jobData] of jobDataArray.entries()) {
-      if (!jobData.url || !jobData.userId || !jobData.analysisType || !jobData.runAt) {
+      const { url, userId, analysisType, runAt, customScript } = jobData;
+
+      if (!url || !userId || !analysisType || !runAt) {
         invalidJobs.push({
           jobIndex: index,
-          error: 'Missing required fields (url, userId, analysisType, runAt)'
+          error: 'Missing required fields (url, userId, analysisType, runAt)',
         });
+        continue;
       }
 
-      // Validate runAt date format
-      const runAt = new Date(jobData.runAt);
-      if (isNaN(runAt)) {
+      if (typeof userId !== 'string') {
         invalidJobs.push({
           jobIndex: index,
-          error: `Invalid runAt date format for job ${index}`
+          error: 'userId must be a string',
         });
+        continue;
       }
 
-      // Validate customScript (optional, must be a string if provided)
-      if (jobData.customScript && typeof jobData.customScript !== 'string') {
+      const parsedRunAt = new Date(runAt);
+      if (isNaN(parsedRunAt.getTime())) {
         invalidJobs.push({
           jobIndex: index,
-          error: 'customScript must be a string if provided'
+          error: `Invalid runAt date format for job ${index}`,
         });
+        continue;
       }
+
+      if (customScript && typeof customScript !== 'string') {
+        invalidJobs.push({
+          jobIndex: index,
+          error: 'customScript must be a string if provided',
+        });
+        continue;
+      }
+
+      // Force runAt to UTC ISO format
+      const utcRunAt = new Date(parsedRunAt.toISOString());
+
+      validJobs.push({
+        url,
+        userId,
+        analysisType,
+        customScript,
+        runAt: utcRunAt,
+      });
     }
 
     if (invalidJobs.length > 0) {
@@ -47,12 +71,12 @@ export const scheduleJob = async (req, res) => {
     }
 
     // Step 3: Insert all valid jobs into the ScheduledJob collection
-    const newJobs = await ScheduledJob.insertMany(jobDataArray);
+    const newJobs = await ScheduledJob.insertMany(validJobs);
 
     // Step 4: Return response with job details
     res.status(201).json({
       message: `${newJobs.length} job(s) scheduled successfully`,
-      jobIds: newJobs.map(job => job._id),
+      jobIds: newJobs.map((job) => job._id),
     });
   } catch (err) {
     console.error('Failed to schedule jobs:', err.message);

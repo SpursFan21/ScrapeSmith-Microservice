@@ -111,7 +111,7 @@ services:
     routes:
       - name: job-route
         paths:
-          - /schedule
+          - /job/api/schedule
         strip_path: true
     plugins:
       - name: cors

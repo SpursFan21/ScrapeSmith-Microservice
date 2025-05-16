@@ -17,7 +17,7 @@ app.use(express.json({ limit: '10mb' }));
 
 connectMongo();
 
-app.use('/api/schedule', scheduleRoutes);
+app.use('/', scheduleRoutes);
 
 app.get('/', (req, res) => {
   res.send('Job Scheduler Service is running...');
