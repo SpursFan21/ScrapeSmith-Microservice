@@ -15,7 +15,6 @@ export async function processJobBatchQueue() {
     .limit(3);
 
   if (jobs.length === 0) {
-    console.log('No jobs to process');
     return;
   }
 

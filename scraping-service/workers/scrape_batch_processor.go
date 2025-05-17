@@ -36,7 +36,6 @@ func ProcessScrapeBatchQueue() {
 	}
 
 	if len(jobs) == 0 {
-		log.Println("No pending jobs to process")
 		return
 	}
 
