@@ -1,16 +1,17 @@
-//ScrapeSmith\scraping-service\models\queued_scrape_job.go
+// ScrapeSmith/scraping-service/models/queued_scrape_job.go
+
 package models
 
 import "time"
 
 type QueuedScrapeJob struct {
-	OrderID      string    `bson:"order_id"`
-	UserID       string    `bson:"user_id"`
-	CreatedAt    time.Time `bson:"created_at"`
+	OrderID      string    `bson:"orderId"`
+	UserID       string    `bson:"userId"`
 	URL          string    `bson:"url"`
-	AnalysisType string    `bson:"analysis_type"`
-	CustomScript string    `bson:"custom_script,omitempty"`
-	Status       string    `bson:"status"` // "pending", "processing", "done", "failed"
+	AnalysisType string    `bson:"analysisType"`
+	CustomScript string    `bson:"customScript,omitempty"`
+	CreatedAt    time.Time `bson:"createdAt"`
+	Status       string    `bson:"status"`
 	Attempts     int       `bson:"attempts"`
-	LastTriedAt  time.Time `bson:"last_tried_at,omitempty"`
+	LastTriedAt  time.Time `bson:"lastTriedAt,omitempty"`
 }

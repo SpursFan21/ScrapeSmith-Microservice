@@ -1,4 +1,5 @@
 // scraping-service\handlers\scrape-handler.go
+
 package handlers
 
 import (
@@ -112,8 +113,8 @@ func SingleScrape(c *fiber.Ctx) error {
 
 	// Step 7: Return response with job details
 	return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
-		"message":    "Job received and queued for scraping",
-		"order_id":   orderId,
-		"created_at": createdAt,
+		"message":   "Job received and queued for scraping",
+		"orderId":   orderId,
+		"createdAt": createdAt,
 	})
 }

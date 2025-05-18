@@ -19,15 +19,15 @@ func RetryFailedScrapeJobs() {
 	filter := bson.M{
 		"status":   "failed",
 		"attempts": bson.M{"$lt": 3}, // Max 3 attempts
-		"last_tried_at": bson.M{
+		"lastTriedAt": bson.M{
 			"$lte": time.Now().Add(-30 * time.Second), // Retry after 30s from last attempt
 		},
 	}
 
 	update := bson.M{
 		"$set": bson.M{
-			"status":        "pending",  // Reset status to "pending" for retry
-			"last_tried_at": time.Now(), // Update last tried time
+			"status":      "pending",  // Reset status to "pending" for retry
+			"lastTriedAt": time.Now(), // Update last tried time
 		},
 	}
 

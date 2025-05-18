@@ -1,4 +1,5 @@
 // ScrapeSmith\scraping-service\workers\scrape_maintenance_worker.go
+
 package workers
 
 import (
@@ -17,8 +18,8 @@ func RunScrapeQueueMaintenance() {
 	// 1. Delete "done" jobs older than 24h
 	cutoff := time.Now().Add(-24 * time.Hour)
 	delDone, err := coll.DeleteMany(context.TODO(), bson.M{
-		"status":     "done",
-		"created_at": bson.M{"$lt": cutoff},
+		"status":    "done",
+		"createdAt": bson.M{"$lt": cutoff},
 	})
 	if err != nil {
 		log.Printf("Cleanup error (done): %v", err)
@@ -39,8 +40,8 @@ func RunScrapeQueueMaintenance() {
 	// 3. Recover stuck "processing" jobs (older than 10m)
 	stuckCutoff := time.Now().Add(-10 * time.Minute)
 	rescue, err := coll.UpdateMany(context.TODO(), bson.M{
-		"status":        "processing",
-		"last_tried_at": bson.M{"$lt": stuckCutoff},
+		"status":      "processing",
+		"lastTriedAt": bson.M{"$lt": stuckCutoff},
 	}, bson.M{
 		"$set": bson.M{
 			"status": "failed", // Mark stuck jobs as "failed"
