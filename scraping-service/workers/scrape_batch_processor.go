@@ -1,4 +1,5 @@
 // ScrapeSmith\scraping-service\workers\scrape_batch_processor.go
+
 package workers
 
 import (
@@ -14,6 +15,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// ProcessScrapeBatchQueue checks the scrape queue for up to 3 pending jobs.
+// If found, it locks them for processing and dispatches them to worker goroutines.
 func ProcessScrapeBatchQueue() {
 	// Get the "queued_scrape_jobs" collection
 	coll := utils.GetCollection("queued_scrape_jobs")
@@ -64,16 +67,20 @@ func ProcessScrapeBatchQueue() {
 	wg.Wait()
 }
 
+// processSingleScrapeJob handles a single job: performs scraping,
+// stores the raw data, and sends it to the data-cleaning queue.
 func processSingleScrapeJob(job models.QueuedScrapeJob) {
-	log.Printf("Scraping job %s", job.OrderID)
+	log.Printf("🔍 Scraping job %s", job.OrderID)
 
 	// Scrape the content using the ScrapeNinja API
 	body, err := utils.ScrapeWithScrapeNinja(job.URL)
 	if err != nil {
-		log.Printf("Scrape failed for %s: %v", job.OrderID, err)
+		log.Printf("❌ Scrape failed for %s: %v", job.OrderID, err)
 		failJob(job.OrderID)
 		return
 	}
+
+	log.Printf("✅ Successfully scraped job %s", job.OrderID)
 
 	// Store the raw scrape data in the "scraped_data" collection
 	scrapedColl := utils.GetCollection("scraped_data")
@@ -87,43 +94,50 @@ func processSingleScrapeJob(job models.QueuedScrapeJob) {
 		"data":         body,
 	})
 	if err != nil {
-		log.Printf("Failed to store scrape result for %s: %v", job.OrderID, err)
+		log.Printf("❌ Failed to store scrape result for %s: %v", job.OrderID, err)
 		failJob(job.OrderID)
 		return
 	}
 
-	// Insert the scrape job into the data-cleaning queue (MongoDB)
+	// Insert the job into the data-cleaning queue
 	cleanerColl := utils.GetCollection("queued_clean_jobs")
-	_, err = cleanerColl.InsertOne(context.TODO(), bson.M{
-		"orderId":      job.OrderID,
-		"userId":       job.UserID,
-		"url":          job.URL,
-		"analysisType": job.AnalysisType,
-		"customScript": job.CustomScript,
-		"rawData":      body,
-		"status":       "pending",
-		"createdAt":    job.CreatedAt,
-	})
+	cleanJob := models.QueuedCleanJob{
+		OrderID:      job.OrderID,
+		UserID:       job.UserID,
+		URL:          job.URL,
+		AnalysisType: job.AnalysisType,
+		CustomScript: job.CustomScript,
+		CreatedAt:    job.CreatedAt,
+		RawData:      body,
+		Status:       "pending",
+		Attempts:     0,
+	}
+	_, err = cleanerColl.InsertOne(context.TODO(), cleanJob)
 	if err != nil {
-		log.Printf("Failed to insert job into clean queue for %s: %v", job.OrderID, err)
+		log.Printf("❌ Failed to insert job into clean queue for %s: %v", job.OrderID, err)
 		failJob(job.OrderID)
 		return
 	}
 
-	log.Printf("Job %s added to clean queue", job.OrderID)
+	log.Printf("📦 Job %s inserted into clean queue", job.OrderID)
 
 	// Mark original scrape job as done
-	utils.GetCollection("queued_scrape_jobs").UpdateOne(context.TODO(),
+	_, err = utils.GetCollection("queued_scrape_jobs").UpdateOne(context.TODO(),
 		bson.M{"orderId": job.OrderID},
 		bson.M{"$set": bson.M{"status": "done"}})
+	if err != nil {
+		log.Printf("⚠️ Failed to mark job %s as done", job.OrderID)
+	} else {
+		log.Printf("✅ Job %s marked as done in scrape queue", job.OrderID)
+	}
 }
 
+// failJob updates the job status to "failed" in the scrape queue
 func failJob(orderID string) {
-	// Update the job status to "failed" in the queue
 	_, err := utils.GetCollection("queued_scrape_jobs").UpdateOne(context.TODO(),
 		bson.M{"orderId": orderID},
 		bson.M{"$set": bson.M{"status": "failed"}})
 	if err != nil {
-		log.Printf("Failed to mark job %s as failed: %v", orderID, err)
+		log.Printf("❌ Failed to mark job %s as failed: %v", orderID, err)
 	}
 }

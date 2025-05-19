@@ -86,6 +86,13 @@ func SingleScrape(c *fiber.Ctx) error {
 		})
 	}
 
+	if strings.TrimSpace(req.URL) == "" || strings.TrimSpace(req.Analysis) == "" {
+		log.Println("Missing required fields: url or analysis_type")
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Missing required fields: url and analysis_type",
+		})
+	}
+
 	// Step 5: Create a new job
 	orderId := uuid.New().String()
 	createdAt := time.Now()
@@ -110,6 +117,9 @@ func SingleScrape(c *fiber.Ctx) error {
 			"error": "Failed to enqueue scrape job",
 		})
 	}
+
+	// Log success
+	log.Printf("✅ Scrape job queued: userId=%s, orderId=%s", userID, orderId)
 
 	// Step 7: Return response with job details
 	return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
