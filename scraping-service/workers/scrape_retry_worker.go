@@ -39,7 +39,5 @@ func RetryFailedScrapeJobs() {
 
 	if result.ModifiedCount > 0 {
 		log.Printf("🔁 Retry worker reset %d job(s) to pending", result.ModifiedCount)
-	} else {
-		log.Printf("⏳ Retry worker found no eligible jobs to retry")
 	}
 }
