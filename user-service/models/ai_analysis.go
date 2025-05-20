@@ -2,12 +2,14 @@
 
 package models
 
+import "time"
+
 type AIAnalysisResult struct {
-	OrderID      string `json:"order_id" bson:"orderId"`
-	UserID       string `json:"user_id" bson:"userId"`
-	CreatedAt    string `json:"created_at" bson:"createdAt"`
-	URL          string `json:"url" bson:"url"`
-	AnalysisType string `json:"analysis_type" bson:"analysisType"`
-	CustomScript string `json:"custom_script,omitempty" bson:"customScript,omitempty"`
-	AnalysisData string `json:"analysis_data" bson:"analysisData"`
+	OrderID      string    `json:"order_id" bson:"orderId"`
+	UserID       string    `json:"user_id" bson:"userId"`
+	CreatedAt    time.Time `json:"created_at" bson:"createdAt"`
+	URL          string    `json:"url" bson:"url"`
+	AnalysisType string    `json:"analysis_type" bson:"analysisType"`
+	CustomScript string    `json:"custom_script,omitempty" bson:"customScript,omitempty"`
+	AnalysisData string    `json:"analysis_data" bson:"analysisData"`
 }

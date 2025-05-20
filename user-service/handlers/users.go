@@ -15,7 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// GetUser fetches the user's account data
+// GetUser fetches the user's account data for acount page
 func GetUser(c *fiber.Ctx) error {
 	userID := c.Params("id")
 	oid, err := primitive.ObjectIDFromHex(userID)

@@ -1,11 +1,11 @@
 // user-service\handlers\order_details.go
+
 package handlers
 
 import (
 	"context"
 	"log"
 	"time"
-
 	"user-service/models"
 	"user-service/mongo"
 
@@ -14,40 +14,54 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func GetOrderMetadata(c *fiber.Ctx) error {
+// for order details page
+func GetFullOrderDetails(c *fiber.Ctx) error {
 	orderId := c.Params("orderId")
-
 	user := c.Locals("user").(*jwt.Token)
 	claims := *(user.Claims.(*jwt.MapClaims))
-	userID, ok := claims["sub"].(string)
-	isAdmin, _ := claims["is_admin"].(bool)
+	requesterID := claims["sub"].(string)
+	isAdmin := claims["is_admin"].(bool)
 
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Unauthorized",
-		})
-	}
-
-	collection := mongo.GetCollection("scraped_data")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var result models.ScrapeResult
-	err := collection.FindOne(ctx, bson.M{"order_id": orderId}).Decode(&result)
-	if err != nil {
-		log.Printf("Failed to find scraped order metadata: %v", err)
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Order not found",
-		})
+	// Step 1: Fetch raw scrape data
+	var raw models.ScrapeResult
+	if err := mongo.GetCollection("scraped_data").FindOne(ctx, bson.M{"orderId": orderId}).Decode(&raw); err != nil {
+		log.Printf("Raw data not found for %s", orderId)
+		return fiber.NewError(fiber.StatusNotFound, "Raw scrape data not found")
 	}
 
-	if result.UserID != userID && !isAdmin {
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-			"error": "Access denied",
-		})
+	// Access check
+	if !isAdmin && raw.UserID != requesterID {
+		return fiber.NewError(fiber.StatusForbidden, "Unauthorized to view this order")
 	}
 
-	// Strip the full raw data for this endpoint (metadata only)
-	result.Data = ""
-	return c.JSON(result)
+	// Step 2: Fetch cleaned data
+	var clean models.CleanedResult
+	if err := mongo.GetCollection("cleaned_data").FindOne(ctx, bson.M{"orderId": orderId}).Decode(&clean); err != nil {
+		log.Printf("Cleaned data not found for %s", orderId)
+		// Not fatal — continue
+	}
+
+	// Step 3: Fetch AI analysis
+	var ai models.AIAnalysisResult
+	if err := mongo.GetCollection("analyzed_data").FindOne(ctx, bson.M{"orderId": orderId}).Decode(&ai); err != nil {
+		log.Printf("AI analysis not found for %s", orderId)
+		// Not fatal — continue
+	}
+
+	// Unified response
+	return c.JSON(fiber.Map{
+		"order": fiber.Map{
+			"order_id":      raw.OrderID,
+			"created_at":    raw.CreatedAt,
+			"url":           raw.URL,
+			"analysis_type": raw.AnalysisType,
+			"custom_script": raw.CustomScript,
+		},
+		"raw_data":    raw.Data,
+		"clean_data":  clean.CleanedData,
+		"ai_analysis": ai.AnalysisData,
+	})
 }

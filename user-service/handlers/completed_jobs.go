@@ -1,4 +1,5 @@
 // user-service\handlers\completed_jobs.go
+
 package handlers
 
 import (
@@ -15,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// for list of users completed jobs
 func GetCompletedJobs(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims := *(user.Claims.(*jwt.MapClaims))
@@ -31,17 +33,16 @@ func GetCompletedJobs(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Updated to match snake_case as stored in MongoDB
 	projection := bson.M{
-		"order_id":      1,
-		"user_id":       1,
-		"created_at":    1,
-		"url":           1,
-		"analysis_type": 1,
-		"custom_script": 1,
+		"orderId":      1,
+		"userId":       1,
+		"createdAt":    1,
+		"url":          1,
+		"analysisType": 1,
+		"customScript": 1,
 	}
 
-	filter := bson.M{"user_id": userID}
+	filter := bson.M{"userId": userID}
 	opts := options.Find().SetProjection(projection)
 
 	cursor, err := collection.Find(ctx, filter, opts)

@@ -1,4 +1,5 @@
 // models/cleaned_result.go
+
 package models
 
 import "time"
