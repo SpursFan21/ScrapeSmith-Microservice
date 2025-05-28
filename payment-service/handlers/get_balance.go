@@ -7,29 +7,66 @@ import (
 	"context"
 	"time"
 
+	"payment-service/models"
 	"payment-service/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func GetUserBalance(c *fiber.Ctx) error {
-	user := c.Locals("user").(*jwt.Token)
-	claims := *(user.Claims.(*jwt.MapClaims))
-	userID := claims["sub"].(string)
+	localUser := c.Locals("user")
+	if localUser == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized: no token provided",
+		})
+	}
+
+	claims, ok := localUser.(jwt.MapClaims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized: invalid token format",
+		})
+	}
+
+	userID, ok := claims["sub"].(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized: user ID missing",
+		})
+	}
 
 	collection := utils.GetCollection("user_balances")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var result struct {
-		Balance int `bson:"balance"`
+	var result models.UserBalance
+	err := collection.FindOne(ctx, bson.M{"user_id": userID}).Decode(&result)
+
+	// If not found, insert default balance
+	if err == mongo.ErrNoDocuments {
+		result = models.UserBalance{
+			UserID:      userID,
+			Balance:     0,
+			LastUpdated: time.Now(),
+		}
+		_, insertErr := collection.InsertOne(ctx, result)
+		if insertErr != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to initialize balance",
+			})
+		}
+		// Return new balance
+		return c.JSON(fiber.Map{"balance": result.Balance})
 	}
 
-	err := collection.FindOne(ctx, bson.M{"user_id": userID}).Decode(&result)
+	// Other DB error
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Balance not found"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to fetch balance",
+		})
 	}
 
 	return c.JSON(fiber.Map{"balance": result.Balance})

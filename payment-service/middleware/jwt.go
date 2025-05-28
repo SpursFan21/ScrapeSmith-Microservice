@@ -11,6 +11,7 @@ import (
 
 func JWTMiddleware() fiber.Handler {
 	secret := os.Getenv("JWT_SECRET_KEY")
+
 	return func(c *fiber.Ctx) error {
 		authHeader := c.Get("Authorization")
 		if authHeader == "" || len(authHeader) <= 7 || authHeader[:7] != "Bearer " {
@@ -30,7 +31,14 @@ func JWTMiddleware() fiber.Handler {
 			})
 		}
 
-		c.Locals("user", token)
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Failed to parse token claims",
+			})
+		}
+
+		c.Locals("user", claims)
 		return c.Next()
 	}
 }

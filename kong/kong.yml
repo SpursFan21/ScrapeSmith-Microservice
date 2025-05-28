@@ -30,7 +30,7 @@ services:
           methods: ["GET", "PUT", "OPTIONS"]  # Add PUT for updating user data
           headers: ["Content-Type", "Authorization"]
           credentials: true
-
+  
   - name: payment-service
     url: http://payment-service:3002
     routes:
@@ -42,9 +42,10 @@ services:
       - name: cors
         config:
           origins: ["http://localhost:3000"]
-          methods: ["POST", "OPTIONS"]
+          methods: ["GET", "POST", "OPTIONS"]
           headers: ["Content-Type", "Authorization"]
           credentials: true
+
 
   - name: scraping-service
     url: http://scraping-service:3003

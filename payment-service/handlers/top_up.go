@@ -1,4 +1,4 @@
-//ScrapeSmith\payment-service\handlers\top_up.go
+// ScrapeSmith\payment-service\handlers\top_up.go
 // forge balance
 
 package handlers
@@ -26,9 +26,26 @@ func TopUpWithVoucher(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 	}
 
-	user := c.Locals("user").(*jwt.Token)
-	claims := *(user.Claims.(*jwt.MapClaims))
-	userID := claims["sub"].(string)
+	localUser := c.Locals("user")
+	if localUser == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized: no token provided",
+		})
+	}
+
+	claims, ok := localUser.(jwt.MapClaims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized: invalid token format",
+		})
+	}
+
+	userID, ok := claims["sub"].(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized: user ID missing",
+		})
+	}
 
 	expectedCode := os.Getenv("FORGE_VOUCHER_CODE")
 	if req.Code != expectedCode {

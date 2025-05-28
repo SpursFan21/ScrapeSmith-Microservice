@@ -15,8 +15,16 @@ func SetupPaymentRoutes(app *fiber.App) {
 	app.Get("/product/:id", handlers.GetProductDetails)
 	app.Post("/validate-voucher", handlers.ValidateVoucher)
 
-	// Forge Balance endpoints with JWT middleware
-	balanceGroup := app.Group("/balance", middleware.JWTMiddleware())
-	balanceGroup.Post("/top-up/voucher", handlers.TopUpWithVoucher)
-	balanceGroup.Get("/", handlers.GetUserBalance)
+	// Forge Balance endpoints (use explicit routes instead of a group)
+	app.Get("/balance", middleware.JWTMiddleware(), handlers.GetUserBalance)
+	app.Post("/balance/top-up/voucher", middleware.JWTMiddleware(), handlers.TopUpWithVoucher)
+
+	// Temporary: no JWT
+	//app.Get("/balance", handlers.GetUserBalance)
+	//app.Post("/balance/top-up/voucher", handlers.TopUpWithVoucher)
+
+	app.Get("/debug", func(c *fiber.Ctx) error {
+		return c.SendString(" Payment service is reachable")
+	})
+
 }
