@@ -19,6 +19,9 @@ func SetupPaymentRoutes(app *fiber.App) {
 	app.Get("/balance", middleware.JWTMiddleware(), handlers.GetUserBalance)
 	app.Post("/balance/top-up/voucher", middleware.JWTMiddleware(), handlers.TopUpWithVoucher)
 
+	//bulk scrape endpoint
+	app.Post("/schedule", middleware.JWTMiddleware(), handlers.DeductForgeBalance)
+
 	// Temporary: no JWT
 	//app.Get("/balance", handlers.GetUserBalance)
 	//app.Post("/balance/top-up/voucher", handlers.TopUpWithVoucher)
