@@ -1,5 +1,7 @@
 //ScrapeSmith\payment-service\handlers\payment_schedule.go
 
+// ScrapeSmith\payment-service\handlers\payment_schedule.go
+
 package handlers
 
 import (
@@ -12,8 +14,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type ScheduleRequest struct {
@@ -51,39 +51,37 @@ func DeductForgeBalance(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// 4. Fetch balance
-	var balance models.UserBalance
-	err := collection.FindOne(ctx, bson.M{"user_id": userID}).Decode(&balance)
-	if err == mongo.ErrNoDocuments {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User balance not found"})
-	} else if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch user balance"})
+	// 4. Atomic deduction with filter check
+	filter := bson.M{
+		"user_id": userID,
+		"balance": bson.M{"$gte": req.Amount},
+	}
+	update := bson.M{
+		"$inc": bson.M{"balance": -req.Amount},
+		"$set": bson.M{"last_updated": time.Now()},
 	}
 
-	// 5. Validate funds
-	if balance.Balance < req.Amount {
+	result, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update balance"})
+	}
+	if result.MatchedCount == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":   "Insufficient balance",
-			"balance": balance.Balance,
-			"required": req.Amount,
+			"error": "Insufficient balance or user not found",
 		})
 	}
 
-	// 6. Deduct and update
-	newBalance := balance.Balance - req.Amount
-	update := bson.M{
-		"$set": bson.M{
-			"balance":      newBalance,
-			"last_updated": time.Now(),
-		},
-	}
-	_, updateErr := collection.UpdateOne(ctx, bson.M{"user_id": userID}, update, options.Update())
-	if updateErr != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update balance"})
+	// 5. Return success
+	var updated models.UserBalance
+	err = collection.FindOne(ctx, bson.M{"user_id": userID}).Decode(&updated)
+	if err != nil {
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": "Balance deducted, but failed to fetch updated balance",
+		})
 	}
 
 	return c.JSON(fiber.Map{
 		"message": "Balance deducted successfully",
-		"balance": newBalance,
+		"balance": updated.Balance,
 	})
 }
