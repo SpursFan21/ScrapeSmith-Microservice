@@ -11,7 +11,7 @@ export const getAdminStats = async (req, res) => {
     const [totalUsers, totalAdmins, totalOrders, openTickets] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ is_admin: true }),
-      db.collection('scrapes').countDocuments(),
+      db.collection('scraped_data').countDocuments(),
       Ticket.countDocuments({ status: 'open' }),
     ]);
 

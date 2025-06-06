@@ -13,6 +13,7 @@ import {
 
 import * as ticketController from '../controllers/ticketController.js';
 import { getAdminStats } from '../controllers/adminStatsController.js';
+import { getAllAIResults } from '../controllers/aiController.js';
 
 import { verifyAdmin } from '../middleware/authMiddleware.js';
 
@@ -37,5 +38,8 @@ router.post('/tickets/:id/close', ticketController.closeTicket);
 
 // Stats route
 router.get('/stats', getAdminStats);
+
+// AI Analysis route
+router.get('/ai-results', getAllAIResults);
 
 export default router;
