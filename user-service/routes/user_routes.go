@@ -4,6 +4,7 @@ package routes
 
 import (
 	"user-service/handlers"
+	"user-service/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -21,6 +22,11 @@ func SetupUserRoutes(app *fiber.App) {
 
 	// Unified order details route (replaces the 3 separate ones)
 	userGroup.Get("/order-details/:orderId", handlers.GetFullOrderDetails)
+
+	// Support ticket routes
+	app.Post("/users/tickets", middleware.JWTMiddleware(), handlers.SubmitTicket)
+	app.Get("/users/tickets", middleware.JWTMiddleware(), handlers.GetMyTickets)
+	app.Post("/users/tickets/:id/reply", middleware.JWTMiddleware(), handlers.ReplyToTicket)
 
 	// (Optional: Keep these if needed for admin tools or debugging)
 	// userGroup.Get("/scraped-order/:orderId", handlers.GetScrapedOrderByID)

@@ -1,4 +1,5 @@
 // user-service\main.go
+
 package main
 
 import (
@@ -7,13 +8,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 
+	"user-service/handlers"
 	"user-service/middleware"
 	"user-service/mongo"
 	"user-service/routes"
 )
 
 func main() {
-	// Load environment variables
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using system environment variables")
 	}
@@ -21,14 +22,17 @@ func main() {
 	// Connect to MongoDB
 	mongo.ConnectMongo()
 
+	// Initialize ticket collection
+	handlers.InitTicketCollection(mongo.MongoClient, mongo.GetCollection("tickets").Database().Name())
+
 	app := fiber.New()
 
-	// Apply JWT middleware
+	// Global JWT middleware
 	app.Use(middleware.JWTMiddleware())
 
-	// Setup routes (no longer pass db)
+	// Routes
 	routes.SetupUserRoutes(app)
 
-	log.Println("✅ User service running on port 3001")
+	log.Println("User service running on port 3001")
 	log.Fatal(app.Listen(":3001"))
 }

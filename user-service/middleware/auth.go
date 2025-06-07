@@ -1,4 +1,5 @@
 // user-service\middleware\auth.go
+
 package middleware
 
 import (
@@ -15,9 +16,24 @@ func JWTMiddleware() fiber.Handler {
 		SigningKey:   []byte(os.Getenv("JWT_SECRET_KEY")),
 		TokenLookup:  "header:Authorization",
 		AuthScheme:   "Bearer",
-		ContextKey:   "user",
+		ContextKey:   "jwt", // default key
 		Claims:       &jwt.MapClaims{},
 		ErrorHandler: jwtErrorHandler,
+		SuccessHandler: func(c *fiber.Ctx) error {
+			user := c.Locals("jwt").(*jwt.Token)
+			claims := user.Claims.(*jwt.MapClaims)
+
+			sub, ok := (*claims)["sub"].(string)
+			if !ok {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"error": "Invalid token structure",
+				})
+			}
+
+			// Attach userId to context
+			c.Locals("userId", sub)
+			return c.Next()
+		},
 	})
 }
 
