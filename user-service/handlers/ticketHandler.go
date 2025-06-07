@@ -26,7 +26,7 @@ func SubmitTicket(c *fiber.Ctx) error {
 	userIDVal := c.Locals("userId")
 	userID, ok := userIDVal.(string)
 	if !ok || userID == "" {
-		log.Println("❌ Invalid or missing userId in context")
+		log.Println("Invalid or missing userId in context")
 		return c.Status(400).JSON(fiber.Map{"error": "Unauthorized or missing user ID"})
 	}
 
@@ -53,7 +53,7 @@ func SubmitTicket(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to submit ticket"})
 	}
 
-	log.Printf("📨 Ticket submitted by user %s | Subject: %s", userID, payload.Subject)
+	log.Printf("Ticket submitted by user %s | Subject: %s", userID, payload.Subject)
 
 	return c.JSON(fiber.Map{"message": "Ticket submitted"})
 }
@@ -63,21 +63,24 @@ func GetMyTickets(c *fiber.Ctx) error {
 	userIDVal := c.Locals("userId")
 	userID, ok := userIDVal.(string)
 	if !ok || userID == "" {
-		log.Println("❌ Invalid or missing userId in GetMyTickets")
+		log.Println(" Invalid or missing userId in GetMyTickets")
 		return c.Status(400).JSON(fiber.Map{"error": "Unauthorized or missing user ID"})
 	}
 
+	//  Query with string
 	cursor, err := ticketColl.Find(context.TODO(), bson.M{"userId": userID})
 	if err != nil {
+		log.Printf(" Failed to fetch tickets for user %s: %v", userID, err)
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to fetch tickets"})
 	}
 
 	var tickets []models.Ticket
 	if err := cursor.All(context.TODO(), &tickets); err != nil {
+		log.Printf(" Failed to parse tickets for user %s: %v", userID, err)
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to parse tickets"})
 	}
 
-	log.Printf("📦 Fetched %d tickets for user %s", len(tickets), userID)
+	log.Printf(" Fetched %d tickets for user %s", len(tickets), userID)
 	return c.JSON(tickets)
 }
 
@@ -86,7 +89,7 @@ func ReplyToTicket(c *fiber.Ctx) error {
 	userIDVal := c.Locals("userId")
 	userID, ok := userIDVal.(string)
 	if !ok || userID == "" {
-		log.Println("❌ Invalid or missing userId in ReplyToTicket")
+		log.Println("Invalid or missing userId in ReplyToTicket")
 		return c.Status(400).JSON(fiber.Map{"error": "Unauthorized or missing user ID"})
 	}
 
@@ -123,7 +126,7 @@ func ReplyToTicket(c *fiber.Ctx) error {
 		return c.Status(404).JSON(fiber.Map{"error": "Ticket not found or unauthorized"})
 	}
 
-	log.Printf("↩️ User %s replied to ticket %s", userID, ticketID)
+	log.Printf("User %s replied to ticket %s", userID, ticketID)
 
 	return c.JSON(fiber.Map{"message": "Reply added"})
 }

@@ -16,7 +16,7 @@ func JWTMiddleware() fiber.Handler {
 		SigningKey:   []byte(os.Getenv("JWT_SECRET_KEY")),
 		TokenLookup:  "header:Authorization",
 		AuthScheme:   "Bearer",
-		ContextKey:   "jwt", // default key
+		ContextKey:   "jwt",
 		Claims:       &jwt.MapClaims{},
 		ErrorHandler: jwtErrorHandler,
 		SuccessHandler: func(c *fiber.Ctx) error {
@@ -25,12 +25,13 @@ func JWTMiddleware() fiber.Handler {
 
 			sub, ok := (*claims)["sub"].(string)
 			if !ok {
+				log.Println("JWT SuccessHandler: invalid sub claim in token")
 				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 					"error": "Invalid token structure",
 				})
 			}
 
-			// Attach userId to context
+			log.Printf("JWT SuccessHandler: extracted userId %s", sub)
 			c.Locals("userId", sub)
 			return c.Next()
 		},
@@ -38,7 +39,8 @@ func JWTMiddleware() fiber.Handler {
 }
 
 func jwtErrorHandler(c *fiber.Ctx, err error) error {
-	log.Println("JWT Authentication Error:", err)
+	log.Printf("JWT ErrorHandler triggered: %v", err)
+
 	if err.Error() == "Missing or malformed JWT" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing or malformed JWT"})
 	}
