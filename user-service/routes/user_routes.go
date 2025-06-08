@@ -23,4 +23,7 @@ func SetupUserRoutes(app *fiber.App) {
 	userGroup.Get("/:id", handlers.GetUser)
 	userGroup.Put("/:id", handlers.UpdateUser)
 	userGroup.Put("/:id/password", handlers.UpdatePassword)
+
+	userGroup.Get("/tickets/:id", handlers.GetTicketByID)
+
 }

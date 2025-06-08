@@ -130,3 +130,27 @@ func ReplyToTicket(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"message": "Reply added"})
 }
+
+
+// GET /users/tickets/:id
+func GetTicketByID(c *fiber.Ctx) error {
+	userIDVal := c.Locals("userId")
+	userID, ok := userIDVal.(string)
+	if !ok || userID == "" {
+		return c.Status(401).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
+	ticketID := c.Params("id")
+	objID, err := primitive.ObjectIDFromHex(ticketID)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid ticket ID"})
+	}
+
+	var ticket models.Ticket
+	err = ticketColl.FindOne(context.TODO(), bson.M{"_id": objID, "userId": userID}).Decode(&ticket)
+	if err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Ticket not found"})
+	}
+
+	return c.JSON(ticket)
+}
