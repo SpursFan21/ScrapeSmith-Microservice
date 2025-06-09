@@ -6,6 +6,7 @@ import (
 	"context"
 	"log"
 	"time"
+
 	"user-service/models"
 	"user-service/mongo"
 
@@ -17,10 +18,17 @@ import (
 // for order details page
 func GetFullOrderDetails(c *fiber.Ctx) error {
 	orderId := c.Params("orderId")
-	user := c.Locals("user").(*jwt.Token)
-	claims := *(user.Claims.(*jwt.MapClaims))
-	requesterID := claims["sub"].(string)
-	isAdmin := claims["is_admin"].(bool)
+
+	// extract JWT token from context
+	token := c.Locals("jwt").(*jwt.Token)
+	claims := *(token.Claims.(*jwt.MapClaims))
+
+	requesterID, ok := claims["sub"].(string)
+	if !ok {
+		log.Printf("Invalid sub claim for order %s", orderId)
+		return fiber.NewError(fiber.StatusUnauthorized, "Invalid token claims")
+	}
+	isAdmin, _ := claims["is_admin"].(bool)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

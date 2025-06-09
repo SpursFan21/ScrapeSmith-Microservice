@@ -16,10 +16,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// for list of users completed jobs
+// for list of user's completed jobs
 func GetCompletedJobs(c *fiber.Ctx) error {
-	user := c.Locals("user").(*jwt.Token)
-	claims := *(user.Claims.(*jwt.MapClaims))
+	// extract JWT token from context (set by middleware)
+	token := c.Locals("jwt").(*jwt.Token)
+	claims := *(token.Claims.(*jwt.MapClaims))
 
 	userID, ok := claims["sub"].(string)
 	if !ok {
