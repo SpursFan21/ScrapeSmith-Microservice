@@ -5,9 +5,10 @@ package models
 import "time"
 
 type TicketResponse struct {
-	FromAdmin bool      `json:"fromAdmin"`
-	Message   string    `json:"message"`
-	Timestamp time.Time `json:"timestamp"`
+	FromAdmin bool      `json:"fromAdmin,omitempty" bson:"fromAdmin,omitempty"`
+	AdminID   string    `json:"adminId,omitempty"   bson:"adminId,omitempty"`
+	Message   string    `json:"message"             bson:"message"`
+	Timestamp time.Time `json:"timestamp"           bson:"timestamp"`
 }
 
 type Ticket struct {
