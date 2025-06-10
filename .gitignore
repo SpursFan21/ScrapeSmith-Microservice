@@ -86,3 +86,6 @@ build/
 
 # Docker related
 docker-compose.override.yml
+
+#Copilot ECS related
+manifest.yml

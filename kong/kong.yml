@@ -1,8 +1,24 @@
 _format_version: "3.0"
 
 services:
+  # Health-check service
+  - name: health
+    url: http://127.0.0.1:8001
+    routes:
+      - name: health-route
+        paths:
+          - /health
+        strip_path: false
+    plugins:
+      - name: request-termination
+        config:
+          status_code: 200
+          content_type: "application/json"
+          body: '{"status":"ok"}'
+
+
   - name: auth-service
-    url: http://auth-service:3000
+    url: http://auth-service.test.scrapesmith.local:3000
     routes:
       - name: auth-route
         paths:
@@ -11,13 +27,15 @@ services:
     plugins:
       - name: cors
         config:
-          origins: ["http://localhost:3000"]  # Allow requests from frontend
+          origins:
+            - "http://localhost:3000"
+            - "https://frontend-orpin-six-88.vercel.app"
           methods: ["GET", "POST", "OPTIONS"]
           headers: ["Content-Type", "Authorization"]
           credentials: true
 
   - name: user-service
-    url: http://user-service:3001
+    url: http://user-service.test.scrapesmith.local:3001
     routes:
       - name: user-route
         paths:
@@ -26,14 +44,15 @@ services:
     plugins:
       - name: cors
         config:
-          origins: ["http://localhost:3000"]
+          origins:
+            - "http://localhost:3000"
+            - "https://frontend-orpin-six-88.vercel.app"
           methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
           headers: ["Content-Type", "Authorization"]
           credentials: true
 
-  
   - name: payment-service
-    url: http://payment-service:3002
+    url: http://payment-service.test.scrapesmith.local:3002
     routes:
       - name: payment-route
         paths:
@@ -42,14 +61,15 @@ services:
     plugins:
       - name: cors
         config:
-          origins: ["http://localhost:3000"]
+          origins:
+            - "http://localhost:3000"
+            - "https://frontend-orpin-six-88.vercel.app"
           methods: ["GET", "POST", "OPTIONS"]
           headers: ["Content-Type", "Authorization"]
           credentials: true
 
-
   - name: scraping-service
-    url: http://scraping-service:3003
+    url: http://scraping-service.test.scrapesmith.local:3003
     routes:
       - name: scraping-route
         paths:
@@ -58,13 +78,15 @@ services:
     plugins:
       - name: cors
         config:
-          origins: ["http://localhost:3000"]
+          origins:
+            - "http://localhost:3000"
+            - "https://frontend-orpin-six-88.vercel.app"
           methods: ["POST", "OPTIONS"]
           headers: ["Content-Type", "Authorization"]
           credentials: true
 
   - name: data-cleaning-service
-    url: http://data-cleaning-service:3004
+    url: http://data-cleaning-service.test.scrapesmith.local:3004
     routes:
       - name: data-cleaning-route
         paths:
@@ -73,13 +95,15 @@ services:
     plugins:
       - name: cors
         config:
-          origins: ["http://localhost:3000"]
+          origins:
+            - "http://localhost:3000"
+            - "https://frontend-orpin-six-88.vercel.app"
           methods: ["POST", "OPTIONS"]
           headers: ["Content-Type", "Authorization"]
           credentials: true
-  
+
   - name: admin-service
-    url: http://admin-service:3005
+    url: http://admin-service.test.scrapesmith.local:3005
     routes:
       - name: admin-route
         paths:
@@ -88,13 +112,15 @@ services:
     plugins:
       - name: cors
         config:
-          origins: ["http://localhost:3000"]
+          origins:
+            - "http://localhost:3000"
+            - "https://frontend-orpin-six-88.vercel.app"
           methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
           headers: ["Content-Type", "Authorization"]
           credentials: true
 
   - name: ai-analysis-service
-    url: http://ai-analysis-service:3006
+    url: http://ai-analysis-service.test.scrapesmith.local:3006
     routes:
       - name: ai-analysis-route
         paths:
@@ -103,13 +129,15 @@ services:
     plugins:
       - name: cors
         config:
-          origins: ["http://localhost:3000"]
+          origins:
+            - "http://localhost:3000"
+            - "https://frontend-orpin-six-88.vercel.app"
           methods: ["POST", "OPTIONS"]
           headers: ["Content-Type", "Authorization"]
           credentials: true
 
   - name: job-service
-    url: http://job-service:3007
+    url: http://job-service.test.scrapesmith.local:3007
     routes:
       - name: job-route
         paths:
@@ -118,7 +146,9 @@ services:
     plugins:
       - name: cors
         config:
-          origins: ["http://localhost:3000"]
+          origins:
+            - "http://localhost:3000"
+            - "https://frontend-orpin-six-88.vercel.app"
           methods: ["POST", "OPTIONS"]
           headers: ["Content-Type", "Authorization"]
           credentials: true
