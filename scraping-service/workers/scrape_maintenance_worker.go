@@ -26,9 +26,9 @@ func RunScrapeQueueMaintenance() {
 		"createdAt": bson.M{"$lt": cutoff},
 	})
 	if err != nil {
-		log.Printf("❌ Cleanup error (done): %v", err)
+		log.Printf("Cleanup error (done): %v", err)
 	} else if delDone.DeletedCount > 0 {
-		log.Printf("🧹 Cleaned %d old 'done' jobs", delDone.DeletedCount)
+		log.Printf("Cleaned %d old 'done' jobs", delDone.DeletedCount)
 	}
 
 	// 2. Delete permanently failed jobs (if present)
@@ -36,9 +36,9 @@ func RunScrapeQueueMaintenance() {
 		"status": "permanently_failed",
 	})
 	if err != nil {
-		log.Printf("❌ Cleanup error (permanently_failed): %v", err)
+		log.Printf("Cleanup error (permanently_failed): %v", err)
 	} else if delFailed.DeletedCount > 0 {
-		log.Printf("🪦 Deleted %d permanently failed jobs", delFailed.DeletedCount)
+		log.Printf("Deleted %d permanently failed jobs", delFailed.DeletedCount)
 	}
 
 	// 3. Recover stuck processing jobs (older than 10 minutes)
@@ -50,8 +50,8 @@ func RunScrapeQueueMaintenance() {
 		"$set": bson.M{"status": "failed"},
 	})
 	if err != nil {
-		log.Printf("❌ Error rescuing stuck jobs: %v", err)
+		log.Printf("Error rescuing stuck jobs: %v", err)
 	} else if rescue.ModifiedCount > 0 {
-		log.Printf("🔄 Recovered %d stuck 'processing' jobs and marked them as failed", rescue.ModifiedCount)
+		log.Printf("Recovered %d stuck 'processing' jobs and marked them as failed", rescue.ModifiedCount)
 	}
 }
