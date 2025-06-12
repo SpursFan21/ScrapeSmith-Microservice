@@ -33,11 +33,11 @@ func RetryFailedScrapeJobs() {
 
 	result, err := coll.UpdateMany(context.TODO(), filter, update)
 	if err != nil {
-		log.Printf("❌ Retry worker error: %v", err)
+		log.Printf("Retry worker error: %v", err)
 		return
 	}
 
 	if result.ModifiedCount > 0 {
-		log.Printf("🔁 Retry worker reset %d job(s) to pending", result.ModifiedCount)
+		log.Printf("Retry worker reset %d job(s) to pending", result.ModifiedCount)
 	}
 }
