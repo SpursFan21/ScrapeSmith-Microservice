@@ -70,17 +70,17 @@ func ProcessScrapeBatchQueue() {
 // processSingleScrapeJob handles a single job: performs scraping,
 // stores the raw data, and sends it to the data-cleaning queue.
 func processSingleScrapeJob(job models.QueuedScrapeJob) {
-	log.Printf("🔍 Scraping job %s", job.OrderID)
+	log.Printf("Scraping job %s", job.OrderID)
 
 	// Scrape the content using the ScrapeNinja API
 	body, err := utils.ScrapeWithScrapeNinja(job.URL)
 	if err != nil {
-		log.Printf("❌ Scrape failed for %s: %v", job.OrderID, err)
+		log.Printf("Scrape failed for %s: %v", job.OrderID, err)
 		failJob(job.OrderID)
 		return
 	}
 
-	log.Printf("✅ Successfully scraped job %s", job.OrderID)
+	log.Printf("Successfully scraped job %s", job.OrderID)
 
 	// Store the raw scrape data in the "scraped_data" collection
 	scrapedColl := utils.GetCollection("scraped_data")
@@ -94,7 +94,7 @@ func processSingleScrapeJob(job models.QueuedScrapeJob) {
 		"data":         body,
 	})
 	if err != nil {
-		log.Printf("❌ Failed to store scrape result for %s: %v", job.OrderID, err)
+		log.Printf("Failed to store scrape result for %s: %v", job.OrderID, err)
 		failJob(job.OrderID)
 		return
 	}
@@ -114,21 +114,21 @@ func processSingleScrapeJob(job models.QueuedScrapeJob) {
 	}
 	_, err = cleanerColl.InsertOne(context.TODO(), cleanJob)
 	if err != nil {
-		log.Printf("❌ Failed to insert job into clean queue for %s: %v", job.OrderID, err)
+		log.Printf("Failed to insert job into clean queue for %s: %v", job.OrderID, err)
 		failJob(job.OrderID)
 		return
 	}
 
-	log.Printf("📦 Job %s inserted into clean queue", job.OrderID)
+	log.Printf("Job %s inserted into clean queue", job.OrderID)
 
 	// Mark original scrape job as done
 	_, err = utils.GetCollection("queued_scrape_jobs").UpdateOne(context.TODO(),
 		bson.M{"orderId": job.OrderID},
 		bson.M{"$set": bson.M{"status": "done"}})
 	if err != nil {
-		log.Printf("⚠️ Failed to mark job %s as done", job.OrderID)
+		log.Printf("Failed to mark job %s as done", job.OrderID)
 	} else {
-		log.Printf("✅ Job %s marked as done in scrape queue", job.OrderID)
+		log.Printf("Job %s marked as done in scrape queue", job.OrderID)
 	}
 }
 
@@ -138,6 +138,6 @@ func failJob(orderID string) {
 		bson.M{"orderId": orderID},
 		bson.M{"$set": bson.M{"status": "failed"}})
 	if err != nil {
-		log.Printf("❌ Failed to mark job %s as failed: %v", orderID, err)
+		log.Printf("Failed to mark job %s as failed: %v", orderID, err)
 	}
 }
